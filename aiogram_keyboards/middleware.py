@@ -21,6 +21,10 @@ class KeyboardStatesMiddleware(BaseMiddleware):
         super().__init__()
 
     async def on_pre_process_message(self, message: Message, *_args):
+
+        if message.text is None:
+            return None
+
         try:
             button = Button.from_text(message.text)
         except (ValueError, KeyError):
