@@ -65,7 +65,8 @@ class Button:
     def __init__(self,
                  text: Any,
                  ignore_state: bool = True,
-                 on_callback: str = None) -> None:
+                 on_callback: str = None,
+                 data: str = None) -> None:
 
         """Button initialization method
 
@@ -78,6 +79,7 @@ class Button:
         self.text: str = text
         self.ignore_state = ignore_state
         self.on_callback = on_callback
+        self.data = data
 
         self._linked: list[Button] = []
 
@@ -147,7 +149,8 @@ class Button:
     def __repr__(self):
         return (f"<Button text='{self.text}' "
                 f"ignore_state={self.ignore_state} "
-                f"on_callback={self.on_callback}>")
+                f"on_callback={self.on_callback} "
+                f"data={self.data}>")
 
     def __hash__(self) -> int:
         return int(self._hex_hash(), base=16)

@@ -86,3 +86,23 @@ class Keyboard:
         markup.add(*buttons)
 
         return markup
+
+    @classmethod
+    def filter(cls):
+        """Filter for KeyBoard
+
+        Creates filter that union all KeyBoard buttons,
+        use it to handle data buttons.
+
+        """
+
+        # TODO: replace it on states control
+        #
+        # This filter able to handle all keyboard
+        # buttons and can be used, for example, to
+        # handle data buttons. But best is to realize
+        # it by states is possible.
+
+        result = group_filter(*cls.get_choices())
+
+        return result
