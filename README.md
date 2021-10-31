@@ -3,6 +3,9 @@ Aiogram keyboards
 
 Package help you in construct and use inline or text keyboards.
 
+Simple usage
+------------
+
 Let's start with example
 
 ```python
@@ -58,8 +61,9 @@ from prefix and MD5 text hash. Default prefix
 is `::keyboard::` (in Button.CALLBACK_ROOT), 
 and I not recommend to change it. But if you 
 change, one condition: it must end on colon. 
-Why I'm not recommend to change default 
-value? Lets look:
+
+How you can setup module muddleware to void
+all functional, let's look in following code:
 
 ```python
 
@@ -70,15 +74,13 @@ aiogram_keyboards(dp)
 
 ```
 
-What I did? I'm setup specify pre_process 
-middleware, that skip states if sent text or
-callback found in any button pattern. And if
-change default callback data, it will not
-work. 
+What I did? I'm setup specify middleware, that 
+skip states if sent text or callback found in 
+any button pattern.
 
 > Note:
 > You can configure if button call raise state
 > skip. Just give to button argument 
-> `ignore_state` to initialization method. Also,
-> You can set default call answer on button in
+> `ignore_state` to initialization method. Also 
+> you can set default call answer on button in
 > argument `on_call`.

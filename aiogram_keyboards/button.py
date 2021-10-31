@@ -32,6 +32,21 @@ def _hash_text(string: str) -> str:
     return result
 
 
+def group_filter(*buttons: 'Button'):
+    """Group filter function
+
+    Create telegram filter that union all buttons in list
+
+    """
+
+    result = FalseFilter()
+
+    for i in buttons:
+        result = result.__or__(i.check)
+
+    return result
+
+
 class Button:
     """Button object
 
@@ -78,9 +93,7 @@ class Button:
         :returns Filter object
         """
 
-        result = FalseFilter()
-        for i in (self, *self._linked):
-            result = result.__or__(i.check)
+        result = group_filter(self, *self._linked)
 
         return result
 
@@ -211,7 +224,7 @@ class Button:
         return result
 
     @classmethod
-    def from_callback_data(cls, callback_data: str) -> 'Button':
+    def _from_callback_data(cls, callback_data: str) -> 'Button':
         """ Initialization from callback data """
 
         if callback_data.find(':') == -1:
@@ -224,7 +237,7 @@ class Button:
         return result
 
     @classmethod
-    def from_text(cls, text: str):
+    def _from_text(cls, text: str):
         """Initialization from text
 
         Returns a button, if button with same text exists
@@ -236,3 +249,27 @@ class Button:
         result = cls._from_hash(hash_)
 
         return result
+
+    @classmethod
+    def from_telegram_object(cls,
+                             obj: typing.Union[CallbackQuery, Message]) -> typing.Optional['Button']:
+
+        """Initialization from telegram object
+
+        Returns a button, if button with same text/call_data exists
+        Else, returns None
+
+        """
+
+        try:
+            if isinstance(obj, CallbackQuery):
+                return cls._from_callback_data(obj.data)
+
+            if isinstance(obj, Message):
+                return cls._from_text(obj.text)
+
+        except (KeyError, ValueError):
+            return None
+        else:
+            raise NotImplementedError('Method support only  aiogram '
+                                      'types `CallbackQuery` and `Message`')

@@ -2,7 +2,7 @@ from typing import Union, Optional
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup
 
-from .button import Button
+from .button import Button, group_filter
 
 
 _alias_black_list = Optional[list[Union[str, Button]]]
@@ -20,6 +20,7 @@ class Keyboard:
     """
 
     # TODO: make it safe to inherit.
+    #
     # Now, we cat set parent class buttons
     # in end of the markup. Need create
     # params, providing an opportunity
