@@ -1,35 +1,16 @@
 import typing
 from typing import Any, Union
-import hashlib
+from warnings import warn
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
 from aiogram.dispatcher.filters.builtin import Filter
-from warnings import warn
+
+from .utils import _hash_text
 
 
 class FalseFilter(Filter):
     async def check(self, *args) -> bool:
         return False
-
-
-def _hash_text(string: str) -> str:
-    """Hash text function
-
-    Hashing use to detect buttons from callback_data.
-    Target is compress button text and identify button
-    after script restart, even if keyboards changed.
-    It need to save functional of already exists in
-    telegram buttons.
-
-    return : str
-        Text, hashed by algorithm `MD5`, hex value
-
-    """
-
-    hash_ = hashlib.md5(string.encode('utf-8'))
-    result = hash_.hexdigest()
-
-    return result
 
 
 def group_filter(*buttons: 'Button'):
