@@ -8,6 +8,12 @@ from .button import Button, group_filter
 _alias_black_list = Optional[list[Union[str, Button]]]
 
 
+class Orientation:
+    TOP = -1
+    UNDEFINED = 0
+    BOTTOM = 1
+
+
 class Keyboard:
     """Text markup states helper
 
@@ -19,36 +25,35 @@ class Keyboard:
 
     """
 
-    # TODO: make it safe to inherit.
-    #
-    # Now, we cat set parent class buttons
-    # in end of the markup. Need create
-    # params, providing an opportunity
-    # to pin button in need place on the
-    # markup, saved while inhering.
+    __orientation__ = Orientation.UNDEFINED
+    __width__ = 1
 
-    _all: list[Button] = None
-    _row_width = 1
+    _all: list[Button] = []
 
     @classmethod
     def get_choices(cls) -> list[Button]:
         """ Get all buttons """
 
-        if cls._all is None:
-            cls._repair_all()
-
         return cls._all
 
-    @classmethod
-    def _repair_all(cls):
-        """ Repair field `_all` """
+    def __init_subclass__(cls, **kwargs):
+        # select all buttons from cls
+        buttons = [value
+                   for value in vars(cls).values()
+                   if isinstance(value, Button)]
 
-        if cls._all is None:
-            cls._all = []
-            for i in (cls, *cls.__subclasses__()):
-                cls._all.extend([value
-                                for value in vars(i).values()
-                                if isinstance(value, Button)])
+        # assign markup orientation to buttons where it undefined
+        for i in buttons:
+            if i.orientation is None:
+                i.orientation = cls.__orientation__
+
+        # refresh cls orientation - sub buttons don't inherit it from parents
+        cls.__orientation__ = Orientation.UNDEFINED
+
+        # extend `_all` and struct introduction order by buttons orientation
+        cls._all.extend(buttons)
+        cls._all = sorted(cls._all,
+                          key=lambda button: button.orientation)
 
     @classmethod
     def get_markup(cls, *,
@@ -59,7 +64,7 @@ class Keyboard:
         black_list: list[Button] = [Button(i) for i in black_list]
 
         markup = ReplyKeyboardMarkup(resize_keyboard=True,
-                                     row_width=cls._row_width,
+                                     row_width=cls.__width__,
                                      one_time_keyboard=one_time_keyboard)
 
         buttons = [KeyboardButton(button.text)
@@ -77,7 +82,7 @@ class Keyboard:
         black_list = black_list or []
         black_list: list[Button] = [Button(i) for i in black_list]
 
-        markup = InlineKeyboardMarkup(row_width=cls._row_width)
+        markup = InlineKeyboardMarkup(row_width=cls.__width__)
 
         buttons = [i.inline()
                    for i in cls.get_choices()

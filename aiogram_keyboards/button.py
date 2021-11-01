@@ -47,7 +47,8 @@ class Button:
                  text: Any,
                  ignore_state: bool = True,
                  on_callback: str = None,
-                 data: str = None) -> None:
+                 data: str = None,
+                 orientation: int = None) -> None:
 
         """Button initialization method
 
@@ -61,6 +62,7 @@ class Button:
         self.ignore_state = ignore_state
         self.on_callback = on_callback
         self.data = data
+        self.orientation = orientation
 
         self._linked: list[Button] = []
 
@@ -131,7 +133,8 @@ class Button:
         return (f"<Button text='{self.text}' "
                 f"ignore_state={self.ignore_state} "
                 f"on_callback={self.on_callback} "
-                f"data={self.data}>")
+                f"data={self.data} "
+                f"orientation={self.orientation}>")
 
     def __hash__(self) -> int:
         return int(self._hex_hash(), base=16)
