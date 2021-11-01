@@ -48,7 +48,7 @@ async def settings_handler(message):
 > You can create button aliases. it means
 > that button will be have same functional,
 > only names were different. To create an
-> alias, user func `button.alias(...)`
+> alias, use func `button.alias(...)`
 
 If you need in inline keyboard markup, not 
 text, all that you need: instead method

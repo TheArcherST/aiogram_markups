@@ -101,7 +101,7 @@ class Keyboard:
         # This filter able to handle all keyboard
         # buttons and can be used, for example, to
         # handle data buttons. But best is to realize
-        # it by states is possible.
+        # it by states if possible.
 
         result = group_filter(*cls.get_choices())
 
