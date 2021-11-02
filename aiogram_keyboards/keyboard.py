@@ -38,9 +38,17 @@ class Keyboard:
 
     def __init_subclass__(cls, **kwargs):
         # select all buttons from cls
-        buttons = [value
-                   for value in vars(cls).values()
-                   if isinstance(value, Button)]
+        buttons = []
+
+        def recursive_buttons_collect(cls_):
+            buttons.extend([value
+                            for value in vars(cls_).values()
+                            if isinstance(value, Button)])
+
+            if not cls_.__base__ == Keyboard:
+                return recursive_buttons_collect(cls_.__base__)
+
+        recursive_buttons_collect(cls)
 
         # assign markup orientation to buttons where it undefined
         for i in buttons:
@@ -51,7 +59,7 @@ class Keyboard:
         cls.__orientation__ = Orientation.UNDEFINED
 
         # extend `_all` and struct introduction order by buttons orientation
-        cls._all.extend(buttons)
+        cls._all = buttons
         cls._all = sorted(cls._all,
                           key=lambda button: button.orientation)
 
