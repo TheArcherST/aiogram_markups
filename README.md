@@ -1,8 +1,6 @@
 Aiogram keyboards
 =================
 
-❌ Not usable ❌
-
 Package help you in construct and use inline or text keyboards.
 
 Simple usage
