@@ -1,4 +1,6 @@
+import typing
 from typing import Union, Optional
+from copy import copy
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup
 
@@ -14,7 +16,15 @@ class Orientation:
     BOTTOM = 1
 
 
-class Keyboard:
+class Meta(type):
+    def __init__(cls, name, bases, dct):
+        super().__init__(name, bases, dct)
+
+    def __or__(cls, other) -> 'Keyboard':
+        return cls.__or__(other)
+
+
+class Keyboard(metaclass=Meta):
     """Text markup states helper
 
     >>> class MainMenu(Keyboard):
@@ -55,11 +65,15 @@ class Keyboard:
             if i.orientation is None:
                 i.orientation = cls.__orientation__
 
+        cls._all = buttons
+        cls._struct_buttons()
+
+    @classmethod
+    def _struct_buttons(cls):
         # refresh cls orientation - sub buttons don't inherit it from parents
         cls.__orientation__ = Orientation.UNDEFINED
 
         # extend `_all` and struct introduction order by buttons orientation
-        cls._all = buttons
         cls._all = sorted(cls._all,
                           key=lambda button: button.orientation)
 
@@ -119,3 +133,39 @@ class Keyboard:
         result = group_filter(*cls.get_choices())
 
         return result
+
+    @classmethod
+    def __or__(cls, other: typing.Union['Keyboard', Button]) -> typing.Type['Keyboard']:
+        """
+        Union method (append), return updated copy
+        """
+
+        copy_ = copy(cls)
+        copy_.append(other)
+
+        return copy_
+
+    @classmethod
+    def extend(cls, objects: typing.Iterable[typing.Union[Button, 'Keyboard']]):
+        """
+        Extend by buttons or keyboards
+        """
+
+        for i in objects:
+            cls.append(i)
+
+    @classmethod
+    def append(cls, obj: typing.Union[Button, typing.Type['Keyboard']]):
+        """
+        Append button or all keyboard
+        """
+
+        if Button in obj.__bases__:
+            cls._all.append(obj)
+        elif Keyboard in obj.__bases__:
+            cls._all.extend(obj._all)
+        else:
+            raise NotImplementedError('Method support only `Button` '
+                                      'and `Keyboard` types')
+
+        cls._struct_buttons()
