@@ -2,7 +2,8 @@ import typing
 from typing import Union, Optional
 from copy import copy
 
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup
+from aiogram import Bot
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, Message
 
 from .button import Button, group_filter
 
@@ -16,12 +17,17 @@ class Orientation:
     BOTTOM = 1
 
 
+class KeyboardType:
+    INLINE = 'inline'
+    TEXT = 'text'
+
+
 class Meta(type):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
-    def __or__(cls, other) -> 'Keyboard':
-        return cls.__or__(other)
+    def __or__(self, other) -> 'Keyboard':
+        return self.__or__(other)
 
 
 class Keyboard(metaclass=Meta):
@@ -35,6 +41,7 @@ class Keyboard(metaclass=Meta):
 
     """
 
+    __text__ = None
     __orientation__ = Orientation.UNDEFINED
     __width__ = 1
 
@@ -55,7 +62,7 @@ class Keyboard(metaclass=Meta):
                             for value in vars(cls_).values()
                             if isinstance(value, Button)])
 
-            if not cls_.__base__ == Keyboard:
+            if cls_.__base__ != Keyboard:
                 return recursive_buttons_collect(cls_.__base__)
 
         recursive_buttons_collect(cls)
@@ -169,3 +176,23 @@ class Keyboard(metaclass=Meta):
                                       'and `Keyboard` types')
 
         cls._struct_buttons()
+
+    @classmethod
+    async def process(cls,
+                      bot: Bot,
+                      chat_id: int,
+                      keyboard_type: str = KeyboardType.TEXT) -> Message:
+
+        if keyboard_type == KeyboardType.TEXT:
+            markup = cls.get_markup()
+        elif keyboard_type == KeyboardType.INLINE:
+            markup = cls.get_inline_markup()
+        else:
+            raise KeyError(f'Keyboard type `{keyboard_type}` not exists')
+
+        message = await bot.send_message(chat_id, cls.__text__, reply_markup=markup)
+
+        return message
+
+    def __init__(self, text: str):
+        self.__text__ = text

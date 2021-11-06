@@ -64,7 +64,3 @@ class KeyboardStatesMiddleware(BaseMiddleware):
 
         if button.data is not None:
             call.data = button.data
-
-
-def setup_keyboard_states(dp: Dispatcher):
-    dp.setup_middleware(KeyboardStatesMiddleware(dp))

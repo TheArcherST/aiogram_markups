@@ -8,9 +8,12 @@ from aiogram.dispatcher.filters.builtin import Filter
 from .utils import _hash_text
 
 
-class FalseFilter(Filter):
+class BoolFilter(Filter):
+    def __init__(self, boolean: bool):
+        self.boolean = boolean
+
     async def check(self, *args) -> bool:
-        return False
+        return self.boolean
 
 
 def group_filter(*buttons: 'Button'):
@@ -20,7 +23,10 @@ def group_filter(*buttons: 'Button'):
 
     """
 
-    result = FalseFilter()
+    if len(buttons) == 0:
+        return BoolFilter(True)
+
+    result = BoolFilter(False)
 
     for i in buttons:
         result = result.__or__(i.check)
@@ -48,7 +54,8 @@ class Button:
                  ignore_state: bool = True,
                  on_callback: str = None,
                  data: str = None,
-                 orientation: int = None) -> None:
+                 orientation: int = None,
+                 action: str = None) -> None:
 
         """Button initialization method
 
@@ -63,6 +70,8 @@ class Button:
         self.on_callback = on_callback
         self.data = data
         self.orientation = orientation
+
+        self.action = action
 
         self._linked: list[Button] = []
 

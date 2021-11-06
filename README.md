@@ -70,7 +70,7 @@ all functional, let's look in following code:
 from aiogram_keyboards import setup_aiogram_keyboards
 
 
-aiogram_keyboards(dp)
+setup_aiogram_keyboards(dp)
 
 ```
 
