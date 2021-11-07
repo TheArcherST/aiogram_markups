@@ -131,15 +131,21 @@ class Dialog:
 
         async def handler(obj: Union[Message, CallbackQuery]):
             button = Button.from_telegram_object(obj)
+
+            async def read_value():
+                try:
+                    state.convertor = state.convertor(obj)
+                except ValueError:
+                    # keep wait for normal input
+                    return await self.process(on_finish=on_finish)
+
             if button is not None:
                 if button.action == ButtonActions.SKIP:
                     state.convertor = state.convertor(None)
                 else:
-                    try:
-                        state.convertor = state.convertor(obj)
-                    except ValueError:
-                        # keep wait for normal input
-                        return await self.process(on_finish=on_finish)
+                    await read_value()
+            else:
+                await read_value()
 
             self._dp.message_handlers.unregister(handler)
 
