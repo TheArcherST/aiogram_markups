@@ -200,3 +200,11 @@ class Dialog:
         return repr(self._all_states)
 
     __str__ = __repr__
+
+    def to_dict(self):
+        result = dict()
+
+        for i in self._all_states:
+            result.update({i.name: i.convertor.result})
+
+        return result
