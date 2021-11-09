@@ -111,7 +111,7 @@ ignore_state for all buttons in keyboard. In
 data keyboards, if you use states, it must be 
 set to False.
 
-> Note: you can make fully messages from keyvoard.
+> Note: you can make fully messages from keyboards.
 > Just write into field `__text__` message text and
 > call method `Keyboard.process`.
 
