@@ -84,3 +84,65 @@ any button pattern.
 > `ignore_state` to initialization method. Also 
 > you can set default call answer on button in
 > argument `on_call`.
+
+
+Data keyboards
+--------------
+
+You can make keyboards with need data in buttons.
+Look at the following example:
+
+```python
+
+class DataKeyboardEx(Keyboard):
+    __ignore_state__ = False
+    
+    hour = Button('Hour', data='h')
+    minute = Button('Minute', data='m')
+    second = Button('Second', data='s')
+
+```
+
+So, you can same get inline or keyboard markup.
+If markup inline, data were in `call.data`, 
+if text markup, in `message.text`.
+Field `__ignore_state__` is default value of 
+ignore_state for all buttons in keyboard. In 
+data keyboards, if you use states, it must be 
+set to False.
+
+> Note: you can make fully messages from keyvoard.
+> Just write into field `__text__` message text and
+> call method `Keyboard.process`.
+
+
+Inheritance
+-----------
+
+You can merge two keyboards via inherit. For example,
+you can have one undo keyboard and many data keyboards,
+and you don't need to assign undo button every time,
+use following feature:
+
+```python
+
+class CancelKeyboard(Keyboard):
+    __orientation__ = Orientation.BOTTOM
+    
+    cancel = Button('Cancel')
+
+
+class DataKeyboardEx(CancelKeyboard):
+    __ignore_state__ = False
+    
+    hour = Button('Hour', data='h')
+    minute = Button('Minute', data='m')
+    second = Button('Second', data='s')
+
+```
+
+In code above, field `__orientation__` with valu
+`Orientation.BOTTOM` means that this keyboard must be
+at the bottom if join to another. But this param you 
+can set to any button, `Keyboard.__orientation__` field
+just sets default value.
