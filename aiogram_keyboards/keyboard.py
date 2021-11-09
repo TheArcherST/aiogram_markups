@@ -43,6 +43,7 @@ class Keyboard(metaclass=Meta):
 
     __text__ = None
     __orientation__ = Orientation.UNDEFINED
+    __ignore_state__ = True
     __width__ = 1
 
     _all: list[Button] = []
@@ -71,6 +72,8 @@ class Keyboard(metaclass=Meta):
         for i in buttons:
             if i.orientation is None:
                 i.orientation = cls.__orientation__
+            if i.ignore_state is None:
+                i.ignore_state = cls.__ignore_state__
 
         cls._all = buttons
         cls._struct_buttons()

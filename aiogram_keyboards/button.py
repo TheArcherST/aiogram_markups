@@ -51,7 +51,7 @@ class Button:
 
     def __init__(self,
                  text: Any,
-                 ignore_state: bool = True,
+                 ignore_state: bool = None,
                  on_callback: str = None,
                  data: str = None,
                  orientation: int = None,
