@@ -1,7 +1,8 @@
 Aiogram keyboards
 =================
 
-Package help you in construct and use inline or text keyboards.
+The package helps you construct and use inline or text keyboards.
+
 
 Simple usage
 ------------
@@ -59,10 +60,10 @@ But you can ask, what is callback data of the
 button callback query? Callback data creating 
 from prefix and MD5 text hash. Default prefix
 is `::keyboard::` (in Button.CALLBACK_ROOT), 
-and I not recommend to change it. But if you 
+and I not recommend changing it. But if you 
 change, one condition: it must end on colon. 
 
-How you can setup module muddleware to void
+How you can set up module middleware to void
 all functional, let's look in following code:
 
 ```python
@@ -74,7 +75,7 @@ setup_aiogram_keyboards(dp)
 
 ```
 
-What I did? I'm setup specify middleware, that 
+What I did? I'm set up specify middleware, that 
 skip states if sent text or callback found in 
 any button pattern.
 
@@ -125,6 +126,9 @@ and you don't need to assign undo button every time,
 use following feature:
 
 ```python
+
+from aiogram_keyboards import Orientation
+
 
 class CancelKeyboard(Keyboard):
     __orientation__ = Orientation.BOTTOM
