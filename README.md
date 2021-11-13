@@ -145,8 +145,13 @@ class DataKeyboardEx(CancelKeyboard):
 
 ```
 
-In code above, field `__orientation__` with valu
+In code above, field `__orientation__` with value
 `Orientation.BOTTOM` means that this keyboard must be
 at the bottom if join to another. But this param you 
 can set to any button, `Keyboard.__orientation__` field
 just sets default value.
+
+> Note: you can fast bind your keyboards/buttons, use
+> method `bind` or operator `>>`. For example: 
+> `CancelKeyboard.cancel >> MainMenuKeyboard`, binds 
+> that cancel button must process MainMenuKeyboard.
