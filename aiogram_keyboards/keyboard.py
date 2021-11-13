@@ -1,5 +1,5 @@
 import typing
-from typing import Union, Optional
+from typing import Union, Optional, Type
 from copy import copy
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, Message
@@ -206,7 +206,11 @@ class Keyboard(metaclass=Meta):
     def bind(cls, target: bind_target_alias):
         return bind(cls, target)
 
-    __rshift__ = bind
+    @classmethod
+    def __rshift__(cls, other: bind_target_alias) -> Type['Keyboard']:
+        cls.bind(other)
+
+        return cls
 
     def __init__(self, text: str):
         self.__text__ = text

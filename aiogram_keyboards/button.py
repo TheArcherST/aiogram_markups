@@ -280,4 +280,7 @@ class Button:
     def bind(self, target: bind_target_alias):
         return bind(self, target)
 
-    __rshift__ = bind
+    def __rshift__(self, other: bind_target_alias):
+        self.bind(other)
+
+        return self
