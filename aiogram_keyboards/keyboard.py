@@ -2,24 +2,17 @@ import typing
 from typing import Union, Optional
 from copy import copy
 
-from aiogram import Bot
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, Message
 
 from .button import Button, group_filter
+from .configuration import get_dp
+from .helpers import KeyboardType, Orientation
+
+from .tools.bind import bind, bind_target_alias
+from .tools.handle import handle
 
 
 _alias_black_list = Optional[list[Union[str, Button]]]
-
-
-class Orientation:
-    TOP = -1
-    UNDEFINED = 0
-    BOTTOM = 1
-
-
-class KeyboardType:
-    INLINE = 'inline'
-    TEXT = 'text'
 
 
 class Meta(type):
@@ -182,9 +175,14 @@ class Keyboard(metaclass=Meta):
 
     @classmethod
     async def process(cls,
-                      bot: Bot,
                       chat_id: int,
-                      keyboard_type: str = KeyboardType.TEXT) -> Message:
+                      keyboard_type: str = KeyboardType.TEXT,
+                      active_message: int = None) -> Message:
+
+        if cls.__text__ is None:
+            raise RuntimeError("Can't process keyboard, `__text__` field is empty")
+
+        bot = get_dp().bot
 
         if keyboard_type == KeyboardType.TEXT:
             markup = cls.get_markup()
@@ -193,9 +191,22 @@ class Keyboard(metaclass=Meta):
         else:
             raise KeyError(f'Keyboard type `{keyboard_type}` not exists')
 
-        message = await bot.send_message(chat_id, cls.__text__, reply_markup=markup)
+        if active_message is None:
+            message = await bot.send_message(chat_id, cls.__text__, reply_markup=markup)
+        else:
+            message = await bot.edit_message_text(cls.__text__, chat_id, active_message, reply_markup=markup)
 
         return message
+
+    @classmethod
+    def handle(cls, *filters):
+        return handle(cls, *filters)
+
+    @classmethod
+    def bind(cls, target: bind_target_alias):
+        return bind(cls, target)
+
+    __rshift__ = bind
 
     def __init__(self, text: str):
         self.__text__ = text

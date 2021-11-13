@@ -2,14 +2,14 @@ from typing import Optional
 
 from aiogram import Dispatcher
 
-from .middleware import KeyboardStatesMiddleware
-
 
 DP: Optional[Dispatcher] = None
 
 
 def setup_aiogram_keyboards(dp: Dispatcher):
     global DP
+
+    from .middleware import KeyboardStatesMiddleware
 
     dp.setup_middleware(KeyboardStatesMiddleware(dp))
     DP = dp

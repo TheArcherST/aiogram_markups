@@ -1,11 +1,15 @@
 import typing
-from typing import Any, Union
+from typing import Any, Union, Callable
 from warnings import warn
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
 from aiogram.dispatcher.filters.builtin import Filter
 
 from .utils import _hash_text
+from .configuration import get_dp
+
+from .tools.bind import bind, bind_target_alias
+from .tools.handle import handle
 
 
 class BoolFilter(Filter):
@@ -269,3 +273,11 @@ class Button:
         else:
             raise NotImplementedError('Method support only  aiogram '
                                       'types `CallbackQuery` and `Message`')
+
+    def handle(self, *filters):
+        return handle(self, *filters)
+
+    def bind(self, target: bind_target_alias):
+        return bind(self, target)
+
+    __rshift__ = bind

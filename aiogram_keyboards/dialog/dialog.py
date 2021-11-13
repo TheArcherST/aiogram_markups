@@ -123,7 +123,7 @@ class Dialog:
         handler = self._handler_factory(current, on_finish)
         self._dp.message_handlers.register(handler, current.keyboard.filter())
 
-        await current.keyboard.process(self._dp.bot, self._chat_id)
+        await current.keyboard.process(self._chat_id)
 
     def _handler_factory(self,
                          state: State,
