@@ -1,12 +1,11 @@
 import typing
-from typing import Any, Union, Callable
+from typing import Any, Union
 from warnings import warn
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
 from aiogram.dispatcher.filters.builtin import Filter
 
 from .utils import _hash_text
-from .configuration import get_dp
 
 from .tools.bind import bind, bind_target_alias
 from .tools.handle import handle
@@ -79,7 +78,7 @@ class Button:
 
         self._linked: list[Button] = []
 
-    def _hex_hash(self):
+    def hex_hash(self):
         return _hash_text(self.text)
 
     def filter(self) -> Filter:
@@ -150,7 +149,7 @@ class Button:
                 f"orientation={self.orientation}>")
 
     def __hash__(self) -> int:
-        return int(self._hex_hash(), base=16)
+        return int(self.hex_hash(), base=16)
 
     def __eq__(self, other) -> bool:
         """ Compare content hash """
@@ -172,7 +171,7 @@ class Button:
             raise ValueError(f'Data prefix must ends on colon, '
                              f'but `{data_prefix}` got')
 
-        callback_data = data_prefix + self._hex_hash()
+        callback_data = data_prefix + self.hex_hash()
         result = InlineKeyboardButton(self.text, callback_data=callback_data)
 
         return result

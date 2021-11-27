@@ -180,7 +180,7 @@ class Keyboard(metaclass=Meta):
                       active_message: int = None) -> Message:
 
         if cls.__text__ is None:
-            raise RuntimeError("Can't process keyboard, `__text__` field is empty")
+            raise RuntimeError(f"Can't process keyboard {cls}, `__text__` field is empty")
 
         bot = get_dp().bot
 
@@ -212,5 +212,9 @@ class Keyboard(metaclass=Meta):
 
         return cls
 
-    def __init__(self, text: str):
-        self.__text__ = text
+    @classmethod
+    def customize(cls, text: str) -> Type['Keyboard']:
+        class CustomKeyboard(cls):
+            __text__ = text
+
+        return CustomKeyboard

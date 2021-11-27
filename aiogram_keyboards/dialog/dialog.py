@@ -4,11 +4,13 @@ from dataclasses import dataclass
 
 from aiogram import Dispatcher
 from aiogram.types import CallbackQuery, Message
+from aiogram.dispatcher.filters.builtin import StateFilter
 
 from ..keyboard import Keyboard
 from ..button import Button
 from ..dialog.convert import ConvertTelegramObj
 from ..configuration import get_dp
+from ..utils import _hash_text
 
 
 class ButtonActions:
@@ -20,6 +22,7 @@ T = TypeVar('T')
 
 @dataclass
 class State:
+    dialog: Type['Dialog']
     name: str
     convertor: Union[Type[ConvertTelegramObj], ConvertTelegramObj]
     keyboard: Optional[Type[Keyboard]]
@@ -34,7 +37,7 @@ class State:
 
     @property
     def is_finished(self) -> bool:
-        if self.convertor == ConvertTelegramObj:
+        if issubclass(self.convertor, ConvertTelegramObj):
             result = False
         elif isinstance(self.convertor, ConvertTelegramObj):
             result = True
@@ -42,6 +45,16 @@ class State:
             raise RuntimeError()
 
         return result
+
+    def hex_hash(self):
+        """
+        Get dialog current state hash
+        """
+
+        dialog_hash = self.dialog.hex_hash()
+        result = dialog_hash + _hash_text(f'::state-{self.name}::')
+
+        return _hash_text(result)
 
 
 telegram_object = Union[Message, CallbackQuery]
@@ -55,6 +68,26 @@ class Dialog:
 
     _all_states: list[State] = []
 
+    @classmethod
+    def hex_hash(cls):
+        """
+        Get dialog hash
+        """
+
+        result = ''
+
+        for i in cls._all_states:
+            for button in i.keyboard.get_choices():
+                result += button.hex_hash()
+
+        result = _hash_text(result)
+
+        return result
+
+    @classmethod
+    def __hash__(cls) -> int:
+        return int(cls.hex_hash(), base=16)
+
     def __init_subclass__(cls, **kwargs):
         for var_name, annotation in cls.__annotations__.items():
             if issubclass(annotation, ConvertTelegramObj):
@@ -64,45 +97,89 @@ class Dialog:
                     var = None
 
                 if isinstance(var, str):
-                    var = Keyboard(var)
+                    def create_kb(text: str):
+                        class KB(Keyboard):
+                            __text__ = text
+                        return KB
 
-                state = State(var_name, annotation, var)
+                    var = create_kb(var)
+
+                def set_ignore_state(kb: Type[Keyboard], ignore_state: bool) -> Type[Keyboard]:
+                    for i in kb.get_choices():
+                        i.ignore_state = ignore_state
+
+                    return kb
+
+                var = set_ignore_state(var, False)
+
+                state = State(cls, var_name, annotation, var)
                 cls._all_states.append(state)
 
-    def __init__(self, dp: Dispatcher, chat_id: int):
+    def __init__(self, dp: Dispatcher, chat_id: int, user_id: int = None):
+
+        if user_id is None:
+            user_id = chat_id
+
         self._dp = dp
-        self._chat_id = chat_id
+
+        self.chat_id = chat_id
+        self.user_id = user_id
 
         self._current_id: int = 0
 
-    def _first(self) -> State:
+        self._registered_handlers: list = []
+
+    def _set_handlers(self, on_finish: telegram_handler = None):
+        if on_finish is None:
+            async def default_on_finish(*_args, **_kwargs):
+                pass
+
+            on_finish = default_on_finish
+
+        for i in self._all_states:
+            handler = self._handler_factory(i, on_finish=on_finish)
+            self._dp.message_handlers.register(handler, filters=[StateFilter(self._dp, i.hex_hash())])
+
+    def _remove_handlers(self):
+        for i in self._registered_handlers:
+            self._dp.message_handlers.unregister(i)
+
+        self._registered_handlers.clear()
+
+    async def _first(self) -> State:
         """
         Reset iteration
         """
 
         self._current_id = 0
 
-        return self._fetch()
+        await self._set_current_state()
 
-    def _next(self) -> State:
+        return await self._fetch()
+
+    async def _next(self) -> State:
         """
         Next state
         """
 
         self._current_id += 1
 
-        return self._fetch()
+        await self._set_current_state()
 
-    def _previous(self) -> State:
+        return await self._fetch()
+
+    async def _previous(self) -> State:
         """
         Previous state
         """
 
         self._current_id -= 1
 
-        return self._fetch()
+        await self._set_current_state()
 
-    def _fetch(self) -> State:
+        return await self._fetch()
+
+    async def _fetch(self) -> State:
         """
         Get state
         """
@@ -112,22 +189,49 @@ class Dialog:
         except IndexError:
             raise StopIteration
 
-    async def process(self: T, on_finish: Callable[[T], Awaitable[None]]):
+    async def _finish(self) -> None:
+        """
+        Finish dialog
+        """
+
+        state = self._dp.current_state(chat=self.chat_id, user=self.user_id)
+        await state.finish()
+
+        self._remove_handlers()
+
+        return None
+
+    async def _set_current_state(self):
+        """
+        Set current dialog state for chat in aiogram
+        """
+
+        state = self._dp.current_state(chat=self.chat_id, user=self.user_id)
+        current_state = await self._fetch()
+
+        await state.set_state(current_state.hex_hash())
+
+        return None
+
+    async def process(self, on_finish: Callable[[T], Awaitable[None]]):
         """Process dialog
 
-        Start dialog, on finish - call `on_finish` with results
+        Start dialog, on finish - call `on_finish` with results.
+        Method register all handlers with state and custom filters
 
         """
 
-        current = self._fetch()
-        handler = self._handler_factory(current, on_finish)
-        self._dp.message_handlers.register(handler, current.keyboard.filter())
+        self._set_handlers(on_finish)
 
-        await current.keyboard.process(self._chat_id)
+        await self._first()
+        current = await self._fetch()
+
+        await current.keyboard.process(self.chat_id)
 
     def _handler_factory(self,
                          state: State,
-                         on_finish: Callable[[T], Awaitable[None]]) -> Callable[[telegram_object], Awaitable[None]]:
+                         on_finish: Callable[['Dialog'], Awaitable[None]]
+                         ) -> Callable[[telegram_object], Awaitable[None]]:
 
         async def handler(obj: Union[Message, CallbackQuery]):
             button = Button.from_telegram_object(obj)
@@ -137,7 +241,7 @@ class Dialog:
                     state.convertor = state.convertor(obj)
                 except ValueError:
                     # keep wait for normal input
-                    return await self.process(on_finish=on_finish)
+                    await self._previous()
 
             if button is not None:
                 if button.action == ButtonActions.SKIP:
@@ -147,15 +251,22 @@ class Dialog:
             else:
                 await read_value()
 
-            self._dp.message_handlers.unregister(handler)
-
             try:
-                self._next()
-            except StopIteration:
+                await self._next()
+            except RuntimeError:
+
+                # HOW HANDLE COROUTINE EX?
+                # Here we must handle StopIteration
+                # TODO: Fix it!
+
                 self._sync_cls_states()
+
+                await self._finish()
                 await on_finish(self)
             else:
-                await self.process(on_finish=on_finish)
+                current = await self._fetch()
+
+                await current.keyboard.process(self.chat_id)
 
         return handler
 
@@ -175,6 +286,12 @@ class Dialog:
         """
         Set entry point for dialog
         """
+
+        filters = list(filters)
+
+        for num, i in enumerate(filters):
+            if isinstance(i, Button):
+                filters[num] = i.filter()
 
         if commands is None:
             commands = []
@@ -212,5 +329,10 @@ class Dialog:
 
         for i in self._all_states:
             result.update({i.name: i.convertor.result})
+
+        return result
+
+    async def answer(self, text: str):
+        result = await self._dp.bot.send_message(self.chat_id, text=text)
 
         return result
