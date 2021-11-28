@@ -37,7 +37,7 @@ class State:
 
     @property
     def is_finished(self) -> bool:
-        if issubclass(self.convertor, ConvertTelegramObj):
+        if isinstance(self.convertor, type):
             result = False
         elif isinstance(self.convertor, ConvertTelegramObj):
             result = True
@@ -139,6 +139,7 @@ class Dialog:
         for i in self._all_states:
             handler = self._handler_factory(i, on_finish=on_finish)
             self._dp.message_handlers.register(handler, filters=[StateFilter(self._dp, i.hex_hash())])
+            self._registered_handlers.append(handler)
 
     def _remove_handlers(self):
         for i in self._registered_handlers:
