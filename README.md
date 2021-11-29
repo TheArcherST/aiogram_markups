@@ -155,3 +155,51 @@ just sets default value.
 > method `bind` or operator `>>`. For example: 
 > `CancelKeyboard.cancel >> MainMenuKeyboard`, binds 
 > that cancel button must process MainMenuKeyboard.
+
+
+Dialog
+------
+
+You can construct dialog by class and other objects. You
+can set convertor for all values what bot collect during
+dialog process. For example, you need to user enter his 
+name and age, code:
+
+```python
+
+from aiogram_keyboards.dialog import Dialog, Text, Integer
+
+
+class MainDialog(Dialog):
+    name: Text = "Enter your name"
+    age: Integer = "Enter your age"
+
+    
+@MainDialog.entry_point(commands=['start'])
+async def main_dialog_handler(result: MainDialog):
+    pass
+
+```
+
+And... it's already works! If we run command `/start`,
+we will see processing dialog. To fetch dialog results,
+just explore `result` variable. You can collect is so:
+
+```python
+
+@MainDialog.entry_point(commands=['start'])
+async def main_dialog_handler(result: MainDialog):
+    print(f'User name: {result.name.result}')
+    # User name: <msg : str>
+    
+    print(f'User age: {result.age.result}')
+    # User age <msg : int>
+
+```
+
+Also objects `result.name` and `result.age` have param
+`obj`, is telegram object, what user sent as answer on 
+question.
+
+While handle answer, convertor tries to cast text, but
+if he got troubles, question just repeating.
