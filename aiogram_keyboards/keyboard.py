@@ -223,7 +223,3 @@ class Keyboard(metaclass=Meta):
             __text__ = text
 
         return CustomKeyboard
-
-    @classmethod
-    def __lshift__(cls, other: str):
-        return cls.customize(other)
