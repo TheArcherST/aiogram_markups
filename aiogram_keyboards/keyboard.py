@@ -19,8 +19,13 @@ class Meta(type):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
-    def __or__(self, other) -> 'Keyboard':
-        return self.__or__(other)
+    def __or__(self: Type['Keyboard'], other: typing.Union[Type['Keyboard'], str]) -> Type['Keyboard']:
+        if isinstance(other, self.__class__):
+            return self.__or__(other)
+        elif isinstance(other, str):
+            return self.customize(other)
+        else:
+            raise ValueError(f"Can't use `{other}` in OR expression with Keyboard")
 
 
 class Keyboard(metaclass=Meta):
@@ -218,3 +223,7 @@ class Keyboard(metaclass=Meta):
             __text__ = text
 
         return CustomKeyboard
+
+    @classmethod
+    def __lshift__(cls, other: str):
+        return cls.customize(other)
