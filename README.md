@@ -201,5 +201,76 @@ Also objects `result.name` and `result.age` have param
 `obj`, is telegram object, what user sent as answer on 
 question.
 
-While handle answer, convertor tries to cast text, but
-if he got troubles, question just repeating.
+While handle answer, convertor tries to cast text to 
+type that you provide as annotation dialog, but if 
+he got troubles, question just repeating.
+
+Let's explore patterns that helps you to write your 
+dialog fastly
+
+```python
+
+class MainDialog(Dialog):
+    name: Text = "Enter your name"
+    age: Integer = "Enter your age"
+
+```
+
+Here is a dialog object from example above, but you can
+use instead text Keyboard object. But this keyboard must 
+contain not None `__text__` field.
+
+```python
+
+class DialogKeyboardEx(Keyboard):
+    __text__ = "Enter your name"
+    use_my_username = Button('Use my username')
+
+    
+class MainDialog(Dialog):
+    name: Text = DialogKeyboardEx
+    age: Integer = "Enter your age"
+
+```
+
+But this implementation looks bad, to just change message
+text you must edit keyboard, and all usages of keyboard will
+be use only this text. To solve it, use Keyboard method 
+`customize` or operator `|` (method `__or__`)
+
+```python
+
+class DialogKeyboardEx(Keyboard):
+    use_my_username = Button('Use my username')
+
+    
+class MainDialog(Dialog):
+    name: Text = DialogKeyboardEx | "Enter your name"
+    age: Integer = "Enter your age"
+
+```
+
+It's have same functionality.
+
+Also, method operator `__or__`, if handle Keyboard, append all
+buttons and inherit text, if target keyboard text is None.
+For example, if on all steps you need in `Cancel` button, you can
+implement it so:
+
+```python
+
+class CancelKeyboard(Keyboard):
+    cancel = Button('Cancel')
+
+
+class DialogKeyboardEx(Keyboard):
+    use_my_username = Button('Use my username')
+
+    
+class MainDialog(Dialog):
+    name: Text = CancelKeyboard | DialogKeyboardEx | "Enter your name"
+    age: Integer = CancelKeyboard | "Enter your age"
+
+```
+
+Now we just add everywhere a `Cancel` buttons.
