@@ -146,10 +146,14 @@ class Keyboard(metaclass=Meta):
     def __or__(cls, other: typing.Union['Keyboard', Button]) -> typing.Type['Keyboard']:
         """
         Union method (append), return updated copy
+        Also inherit `__text__` field
         """
 
         copy_ = copy(cls)
         copy_.append(other)
+
+        if copy_.__text__ is None:
+            copy_.__text__ = other.__text__
 
         return copy_
 

@@ -15,6 +15,7 @@ from ..utils import _hash_text
 
 class ButtonActions:
     SKIP = 'skip'
+    BACK = 'back'
 
 
 T = TypeVar('T')
@@ -169,12 +170,12 @@ class Dialog:
 
         return await self._fetch()
 
-    async def _previous(self) -> State:
+    async def _previous(self, step: int = 1) -> State:
         """
         Previous state
         """
 
-        self._current_id -= 1
+        self._current_id -= step
 
         await self._set_current_state()
 
@@ -242,11 +243,13 @@ class Dialog:
                     state.convertor = state.convertor(obj)
                 except ValueError:
                     # keep wait for normal input
-                    await self._previous()
+                    await self._previous(step=1)
 
             if button is not None:
                 if button.action == ButtonActions.SKIP:
                     state.convertor = state.convertor(None)
+                elif button.action == ButtonActions.BACK:
+                    await self._previous(step=2)
                 else:
                     await read_value()
             else:
