@@ -15,19 +15,19 @@ from ..cast import CastMessage, CastTelegramObj, T, TO
 
 
 class PhotoID(CastMessage[str]):
-    def _convert(self, obj: Message) -> T:
+    def _cast(self, obj: Message) -> T:
         photo = obj.photo[0]
 
         return photo.file_id
 
 
 class DocumentID(CastMessage[str]):
-    def _convert(self, obj: Message) -> T:
+    def _cast(self, obj: Message) -> T:
         return obj.document.file_id
 
 
 class Integer(CastTelegramObj[int, TO]):
-    def _convert(self, obj: TO) -> T:
+    def _cast(self, obj: TO) -> T:
         if isinstance(obj, CallbackQuery):
             return int(obj.data)
 
@@ -36,7 +36,7 @@ class Integer(CastTelegramObj[int, TO]):
 
 
 class Float(CastTelegramObj[float, TO]):
-    def _convert(self, obj: TO) -> T:
+    def _cast(self, obj: TO) -> T:
         if isinstance(obj, CallbackQuery):
             return float(obj.data)
 
@@ -45,7 +45,7 @@ class Float(CastTelegramObj[float, TO]):
 
 
 class Text(CastTelegramObj[str, TO]):
-    def _convert(self, obj: TO) -> T:
+    def _cast(self, obj: TO) -> T:
         if isinstance(obj, CallbackQuery):
             return str(obj.data)
 

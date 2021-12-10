@@ -16,7 +16,7 @@ class CastTelegramObjProto(Protocol[T, TO]):
     """
 
     @abstractmethod
-    def _convert(self, obj: TO) -> T:
+    def _cast(self, obj: TO) -> T:
         pass
 
 
@@ -34,10 +34,10 @@ class CastTelegramObj(CastTelegramObjProto, Generic[T, TO]):
         if obj is None:
             self.result = None
         else:
-            self.result = self._convert(obj)
+            self.result = self._cast(obj)
 
     @abstractmethod
-    def _convert(self, obj: TO) -> T:
+    def _cast(self, obj: TO) -> T:
         pass
 
     def __call__(self: T, obj: Optional[TO]) -> T:
@@ -48,11 +48,11 @@ class CastTelegramObj(CastTelegramObjProto, Generic[T, TO]):
 
 class CastCallback(CastTelegramObj[T, CallbackQuery]):
     @abstractmethod
-    def _convert(self, obj: Optional[CallbackQuery]) -> T:
+    def _cast(self, obj: Optional[CallbackQuery]) -> T:
         pass
 
 
 class CastMessage(CastTelegramObj[T, Message]):
     @abstractmethod
-    def _convert(self, obj: Optional[Message]) -> T:
+    def _cast(self, obj: Optional[Message]) -> T:
         pass
