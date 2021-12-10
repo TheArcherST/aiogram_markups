@@ -1,5 +1,5 @@
-from typing import TypeVar, Optional, Union, Generic, Protocol
-from abc import abstractmethod, ABC
+from typing import TypeVar, Optional, Generic, Protocol
+from abc import abstractmethod
 
 from aiogram.types import Message, CallbackQuery
 
@@ -8,7 +8,7 @@ T = TypeVar('T')
 TO = TypeVar('TO', CallbackQuery, Message)
 
 
-class Converter(Protocol[T, TO]):
+class CastTelegramObjProto(Protocol[T, TO]):
     """Converter object
 
     Convert telegram object to need format
@@ -20,7 +20,7 @@ class Converter(Protocol[T, TO]):
         pass
 
 
-class ConvertTelegramObj(Converter, Generic[T, TO]):
+class CastTelegramObj(CastTelegramObjProto, Generic[T, TO]):
     """Converter object
 
     Convert telegram object to need format
@@ -46,13 +46,13 @@ class ConvertTelegramObj(Converter, Generic[T, TO]):
         return self
 
 
-class ConvertCallback(ConvertTelegramObj[T, CallbackQuery]):
+class CastCallback(CastTelegramObj[T, CallbackQuery]):
     @abstractmethod
     def _convert(self, obj: Optional[CallbackQuery]) -> T:
         pass
 
 
-class ConvertMessage(ConvertTelegramObj[T, Message]):
+class CastMessage(CastTelegramObj[T, Message]):
     @abstractmethod
     def _convert(self, obj: Optional[Message]) -> T:
         pass

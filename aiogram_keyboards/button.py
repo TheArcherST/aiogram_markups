@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Union
+from typing import Any, Union, Type, TYPE_CHECKING
 from warnings import warn
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
@@ -9,6 +9,10 @@ from .utils import _hash_text
 
 from .tools.bind import bind, bind_target_alias
 from .tools.handle import handle
+
+
+if TYPE_CHECKING:
+    from .dialog.action import DialogAction
 
 
 class BoolFilter(Filter):
@@ -58,7 +62,7 @@ class Button:
                  on_callback: str = None,
                  data: str = None,
                  orientation: int = None,
-                 action: str = None) -> None:
+                 action: Type['DialogAction'] = None) -> None:
 
         """Button initialization method
 

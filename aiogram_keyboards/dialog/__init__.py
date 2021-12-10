@@ -1,2 +1,5 @@
-from .dialog import Dialog, ButtonActions
-from .builtin_converts import PhotoID, DocumentID, Text, Float, Integer
+from .dialog import Dialog
+
+from .builtin.builtin_converts import PhotoID, DocumentID, Text, Float, Integer
+from .builtin.builtin_actions import ActionBack, ActionSkip
+
