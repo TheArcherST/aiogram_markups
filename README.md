@@ -157,8 +157,8 @@ just sets default value.
 > that cancel button must process MainMenuKeyboard.
 
 
-Dialog
-------
+Dialog (beta)
+-------------
 
 You can construct dialog by class and other objects. You
 can set convertor for all values what bot collect during
