@@ -23,7 +23,10 @@ class PhotoID(CastMessage[str]):
 
 class DocumentID(CastMessage[str]):
     def _cast(self, obj: Message) -> T:
-        return obj.document.file_id
+        try:
+            return obj.document.file_id
+        except AttributeError as e:
+            raise ValueError(f'Error while cast: {e}')
 
 
 class Integer(CastTelegramObj[int, TO]):
@@ -47,7 +50,19 @@ class Float(CastTelegramObj[float, TO]):
 class Text(CastTelegramObj[str, TO]):
     def _cast(self, obj: TO) -> T:
         if isinstance(obj, CallbackQuery):
+
+            if obj.data is None:
+                raise ValueError(
+                    'Cant convert to text `CallbackQuery` object without `data`.'
+                )
+
             return str(obj.data)
 
         if isinstance(obj, Message):
+
+            if obj.text is None:
+                raise ValueError(
+                    'Cant convert to text `Message` object without `text`.'
+                )
+
             return str(obj.text)

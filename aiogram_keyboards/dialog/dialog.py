@@ -1,4 +1,4 @@
-from typing import Type, Optional, Union, Callable, Awaitable, TypeVar
+from typing import Type, Union, Callable, Awaitable, TypeVar
 
 from aiogram import Dispatcher
 from aiogram.types import CallbackQuery, Message
@@ -116,7 +116,7 @@ class Dialog:
             self.__dict__[i.name] = i.convertor
 
     @classmethod
-    def entry_point(cls, *filters, commands: list[str] = None) -> Callable:
+    def entry_point(cls, *filters, commands: list[str] = None, state: str = '*') -> Callable:
         """
         Set entry point for dialog
         """
@@ -146,8 +146,12 @@ class Dialog:
 
                 await self.process(func)
 
-            dp.register_message_handler(call_dialog, *filters, commands=commands)
-            dp.register_callback_query_handler(call_dialog, *filters)
+            if commands:
+                dp.register_message_handler(call_dialog, *filters, commands=commands, state=state)
+            elif state != '*':
+                dp.register_callback_query_handler(call_dialog, *filters, state=state)
+            else:
+                raise ValueError('Entry point not specified, filters not passed.')
 
             return func
 
@@ -256,7 +260,7 @@ class DialogCore:
             async def read_value():
                 try:
                     state.set_result(obj)
-                except ValueError:
+                except (ValueError, IndexError) as e:
                     # keep wait for normal input
                     await self.previous(step=1)
 

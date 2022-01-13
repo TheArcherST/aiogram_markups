@@ -1,12 +1,13 @@
-import typing
-from typing import Union, Optional, Type
+from typing import Union, Optional, Type, Any, Iterable
+from abc import abstractmethod
 from copy import copy
 
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, Message
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, Message, CallbackQuery
 
 from .button import Button, group_filter
 from .configuration import get_dp
 from .helpers import KeyboardType, Orientation
+from .utils import get_chat_id, contain_chat_id_alias
 
 from .tools.bind import bind, bind_target_alias
 from .tools.handle import handle
@@ -19,7 +20,7 @@ class Meta(type):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
-    def __or__(self: Type['Keyboard'], other: typing.Union[Type['Keyboard'], str]) -> Type['Keyboard']:
+    def __or__(self: Type['Keyboard'], other: Union[Type['Keyboard'], str]) -> Type['Keyboard']:
         if isinstance(other, self.__class__):
             return self.__or__(other)
         elif isinstance(other, str):
@@ -143,7 +144,7 @@ class Keyboard(metaclass=Meta):
         return result
 
     @classmethod
-    def __or__(cls, other: typing.Union['Keyboard', Button]) -> typing.Type['Keyboard']:
+    def __or__(cls, other: Union['Keyboard', Button]) -> Type['Keyboard']:
         """
         Union method (append), return updated copy
         Also inherit `__text__` field
@@ -158,7 +159,7 @@ class Keyboard(metaclass=Meta):
         return copy_
 
     @classmethod
-    def extend(cls, objects: typing.Iterable[typing.Union[Button, 'Keyboard']]):
+    def extend(cls, objects: Iterable[Union[Button, 'Keyboard']]):
         """
         Extend by buttons or keyboards
         """
@@ -167,7 +168,7 @@ class Keyboard(metaclass=Meta):
             cls.append(i)
 
     @classmethod
-    def append(cls, obj: typing.Union[Button, typing.Type['Keyboard']]):
+    def append(cls, obj: Union[Button, Type['Keyboard']]):
         """
         Append button or all keyboard
         """
@@ -184,14 +185,31 @@ class Keyboard(metaclass=Meta):
 
     @classmethod
     async def process(cls,
-                      chat_id: int,
-                      keyboard_type: str = KeyboardType.TEXT,
+                      obj: contain_chat_id_alias,
+                      keyboard_type: str = None,
                       active_message: int = None) -> Message:
+
+        """Process keyboard method
+
+        Processing keyboard in passed chat
+
+        """
 
         if cls.__text__ is None:
             raise RuntimeError(f"Can't process keyboard {cls}, `__text__` field is empty")
 
         bot = get_dp().bot
+
+        def infer_keyboard_type(passed_object: Any, default: str = KeyboardType.TEXT):
+            if isinstance(passed_object, Message):
+                return KeyboardType.TEXT
+            if isinstance(passed_object, CallbackQuery):
+                return KeyboardType.INLINE
+
+            return default
+
+        chat_id = get_chat_id(obj)
+        keyboard_type = keyboard_type or infer_keyboard_type(obj)
 
         if keyboard_type == KeyboardType.TEXT:
             markup = cls.get_markup()
@@ -227,3 +245,53 @@ class Keyboard(metaclass=Meta):
             __text__ = text
 
         return CustomKeyboard
+
+
+class AbstractKeyboard(Keyboard):
+    def __init__(self, **kwargs):
+        """AbstractKeyboard initialization method
+
+        Here you must request need arguments to make keyboard
+        and to all buttons what you want change, and pass to
+        this method kwargs: keys is button names, values is new
+        button text. You can not overwrite method if you not see
+        hints or pass args without keywords.
+
+        """
+
+        for key, value in kwargs.items():
+
+            ignore_state = None
+            on_callback = None
+
+            if isinstance(value, str):
+                text = value
+            elif isinstance(value, Button):
+                text = value.text
+                ignore_state = value.ignore_state
+                on_callback = value.on_callback
+            else:
+                raise TypeError("")
+
+            self.change_button(getattr(self, key),
+                               new_text=text,
+                               ignore_state=ignore_state,
+                               on_callback=on_callback)
+
+    def change_button(self,
+                      button: Button,
+                      new_text: str,
+                      ignore_state: bool = None,
+                      on_callback: str = None):
+
+        """ Change button in keyboard """
+
+        self._all.remove(button)
+
+        button = button.alias(text=new_text,
+                              ignore_state=ignore_state,
+                              on_callback=on_callback)
+
+        self._all.append(button)
+
+        return None

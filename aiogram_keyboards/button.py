@@ -271,7 +271,7 @@ class Button:
             if isinstance(obj, Message):
                 return cls._from_text(obj.text)
 
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, AttributeError):
             return None
         else:
             raise NotImplementedError('Method support only  aiogram '
