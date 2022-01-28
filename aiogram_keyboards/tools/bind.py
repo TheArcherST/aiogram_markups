@@ -1,6 +1,7 @@
 from typing import Type, Union, Protocol, TYPE_CHECKING
 
 from aiogram.types import Message, CallbackQuery
+from aiogram.dispatcher.filters import Filter
 
 from ..configuration import get_dp
 from ..helpers import KeyboardType
@@ -11,11 +12,11 @@ if TYPE_CHECKING:
 
 class FilterAble(Protocol):
     @classmethod
-    def filter(cls, *args, **kwargs):
+    def filter(cls, *args, **kwargs) -> Filter:
         pass
 
 
-bind_origin_alias = Union[FilterAble, Type[FilterAble]]
+bind_origin_alias = Union[Type[FilterAble], FilterAble]
 bind_target_alias = Union[Type['Keyboard'], 'Keyboard']
 
 
