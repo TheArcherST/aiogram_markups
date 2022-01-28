@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Union, Type, TYPE_CHECKING
+from typing import Any, Union, Type, TYPE_CHECKING, overload
 from warnings import warn
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
@@ -189,21 +189,21 @@ class Button:
 
         _ = super().__new__(cls)
         _.__init__(*args, **kwargs)
-        exemplar = _
+        _exemplar = _
 
-        if exemplar.__hash__() in cls._exemplars.keys():
-            equal_exemplar = cls._exemplars[exemplar.__hash__()]
+        if _exemplar.__hash__() in cls._exemplars.keys():
+            _equal_exemplar = cls._exemplars[_exemplar.__hash__()]
 
             warn(Warning(
                 f'\nCongratulations, you find a MD5 collision! ... or you just repeat button content.\n'
                 f'Anyway, button replaced on equals one\n'
             ), stacklevel=2)
 
-            return equal_exemplar
+            return _equal_exemplar
 
-        cls._exemplars.update({exemplar.__hash__(): exemplar})
+        cls._exemplars.update({_exemplar.__hash__(): _exemplar})
 
-        return exemplar
+        return _exemplar
 
     @classmethod
     def _from_hash(cls, hash_: typing.Union[str, int]) -> 'Button':
@@ -274,7 +274,7 @@ class Button:
         except (KeyError, ValueError, AttributeError):
             return None
         else:
-            raise NotImplementedError('Method support only  aiogram '
+            raise NotImplementedError('Method support only aiogram '
                                       'types `CallbackQuery` and `Message`')
 
     def handle(self, *filters):
@@ -287,3 +287,8 @@ class Button:
         self.bind(other)
 
         return self
+
+    def __del__(self):
+        self._exemplars.pop(self.__hash__())
+
+        return None
