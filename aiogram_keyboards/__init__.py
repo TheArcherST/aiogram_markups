@@ -1,5 +1,4 @@
-from .button import Button
-from .keyboard import Keyboard
-from .helpers import KeyboardType, Orientation
+from aiogram_keyboards.core.button import Button
+from aiogram_keyboards.core.helpers import MarkupType, Orientation
 
-from .configuration import setup_aiogram_keyboards
+from .configuration import setup_aiogram_keyboards, context

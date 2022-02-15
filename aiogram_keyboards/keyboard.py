@@ -1,19 +1,13 @@
-from typing import Union, Optional, Type, Any, Iterable
-from abc import abstractmethod
+import abc
+from typing import Union, Type, Iterable, Optional, Callable, Awaitable, overload
 from copy import copy
 
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, Message, CallbackQuery
+from aiogram.types import ReplyKeyboardMarkup, Message, CallbackQuery
 
-from .button import Button, group_filter
-from .configuration import get_dp
-from .helpers import KeyboardType, Orientation
-from .utils import get_chat_id, contain_chat_id_alias
-
-from .tools.bind import bind, bind_target_alias
-from .tools.handle import handle
-
-
-_alias_black_list = Optional[list[Union[str, Button]]]
+from .core.helpers import MarkupType, Orientation
+from .core.button import Button
+from .core.markup import Markup as MarkupCore, MarkupBehavior
+from .core.dialog_meta import DialogMeta
 
 
 class Meta(type):
@@ -40,22 +34,36 @@ class Keyboard(metaclass=Meta):
 
     """
 
-    __text__ = None
-    __orientation__ = Orientation.UNDEFINED
-    __ignore_state__ = True
-    __width__ = 1
+    __text__: Optional[Union[str, Callable[['Keyboard', DialogMeta], Awaitable[Optional[str]]]]]
 
-    _all: list[Button] = []
+    async def __text__(self, meta: DialogMeta) -> Optional[str]:
+        return None
+
+    __orientation__ = Orientation.UNDEFINED
+    __ignore_state__ = False
+    __definition_scope__ = None
+    __width__ = 1
+    __buttons__ = []
+
+    __core__: Optional[MarkupCore] = None
+
+    def __init__(self, meta: DialogMeta):
+        self.meta = meta
+
+    async def handler(self) -> None:
+        pass
 
     @classmethod
     def get_choices(cls) -> list[Button]:
         """ Get all buttons """
 
-        return cls._all
+        return cls.__core__.buttons
 
     def __init_subclass__(cls, **kwargs):
+        cls.__core__ = MarkupCore()
+
         # select all buttons from cls
-        buttons = []
+        buttons: list[Button] = []
 
         def recursive_buttons_collect(cls_):
             buttons.extend([value
@@ -67,81 +75,22 @@ class Keyboard(metaclass=Meta):
 
         recursive_buttons_collect(cls)
 
-        # assign markup orientation to buttons where it undefined
-        for i in buttons:
-            if i.orientation is None:
-                i.orientation = cls.__orientation__
-            if i.ignore_state is None:
-                i.ignore_state = cls.__ignore_state__
+        cls.__core__.buttons = buttons
+        cls._synchronize_magic_fields()
 
-        cls._all = buttons
-        cls._struct_buttons()
+        cls.__core__.apply_behavior(MarkupBehavior(handler=cls.handler))
 
     @classmethod
-    def _struct_buttons(cls):
-        # refresh cls orientation - sub buttons don't inherit it from parents
-        cls.__orientation__ = Orientation.UNDEFINED
-
-        # extend `_all` and struct introduction order by buttons orientation
-        cls._all = sorted(cls._all,
-                          key=lambda button: button.orientation)
+    def get_markup(cls) -> ReplyKeyboardMarkup:
+        return cls.__core__.get_markup(MarkupType.TEXT)
 
     @classmethod
-    def get_markup(cls, *,
-                   black_list: _alias_black_list = None,
-                   one_time_keyboard: bool = True) -> ReplyKeyboardMarkup:
-
-        black_list = black_list or []
-        black_list: list[Button] = [Button(i) for i in black_list]
-
-        markup = ReplyKeyboardMarkup(resize_keyboard=True,
-                                     row_width=cls.__width__,
-                                     one_time_keyboard=one_time_keyboard)
-
-        buttons = [KeyboardButton(button.text)
-                   for button in cls.get_choices()
-                   if button not in black_list]
-
-        markup.add(*buttons)
-
-        return markup
-
-    @classmethod
-    def get_inline_markup(cls, *,
-                          black_list: _alias_black_list = None):
-
-        black_list = black_list or []
-        black_list: list[Button] = [Button(i) for i in black_list]
-
-        markup = InlineKeyboardMarkup(row_width=cls.__width__)
-
-        buttons = [i.inline()
-                   for i in cls.get_choices()
-                   if i not in black_list]
-
-        markup.add(*buttons)
-
-        return markup
+    def get_inline_markup(cls):
+        return cls.__core__.get_markup(MarkupType.INLINE)
 
     @classmethod
     def filter(cls):
-        """Filter for KeyBoard
-
-        Creates filter that union all KeyBoard buttons,
-        use it to handle data buttons.
-
-        """
-
-        # TODO: replace it on states control
-        #
-        # This filter able to handle all keyboard
-        # buttons and can be used, for example, to
-        # handle data buttons. But best is to realize
-        # it by states if possible.
-
-        result = group_filter(*cls.get_choices())
-
-        return result
+        return cls.__core__.filter()
 
     @classmethod
     def __or__(cls, other: Union['Keyboard', Button]) -> Type['Keyboard']:
@@ -150,7 +99,7 @@ class Keyboard(metaclass=Meta):
         Also inherit `__text__` field
         """
 
-        copy_ = copy(cls)
+        copy_ = cls.copy()
         copy_.append(other)
 
         if copy_.__text__ is None:
@@ -174,20 +123,19 @@ class Keyboard(metaclass=Meta):
         """
 
         if Button in obj.__bases__:
-            cls._all.append(obj)
+            cls.__core__.buttons.append(obj)
         elif Keyboard in obj.__bases__:
-            cls._all.extend(obj._all)
+            cls.__core__.buttons.extend(obj.__core__.buttons)
         else:
             raise NotImplementedError('Method support only `Button` '
                                       'and `Keyboard` types')
 
-        cls._struct_buttons()
+        cls.__core__.struct_buttons()
 
     @classmethod
     async def process(cls,
-                      obj: contain_chat_id_alias,
-                      keyboard_type: str = None,
-                      active_message: int = None) -> Message:
+                      obj: Union[Message, CallbackQuery],
+                      markup_type: str = None) -> Message:
 
         """Process keyboard method
 
@@ -195,103 +143,36 @@ class Keyboard(metaclass=Meta):
 
         """
 
-        if cls.__text__ is None:
-            raise RuntimeError(f"Can't process keyboard {cls}, `__text__` field is empty")
+        cls._synchronize_magic_fields()
 
-        bot = get_dp().bot
+        result = await cls.__core__.process(obj, markup_type)
 
-        def infer_keyboard_type(passed_object: Any, default: str = KeyboardType.TEXT):
-            if isinstance(passed_object, Message):
-                return KeyboardType.TEXT
-            if isinstance(passed_object, CallbackQuery):
-                return KeyboardType.INLINE
-
-            return default
-
-        chat_id = get_chat_id(obj)
-        keyboard_type = keyboard_type or infer_keyboard_type(obj)
-
-        if keyboard_type == KeyboardType.TEXT:
-            markup = cls.get_markup()
-        elif keyboard_type == KeyboardType.INLINE:
-            markup = cls.get_inline_markup()
-        else:
-            raise KeyError(f'Keyboard type `{keyboard_type}` not exists')
-
-        if active_message is None:
-            message = await bot.send_message(chat_id, cls.__text__, reply_markup=markup)
-        else:
-            message = await bot.edit_message_text(cls.__text__, chat_id, active_message, reply_markup=markup)
-
-        return message
-
-    @classmethod
-    def handle(cls, *filters):
-        return handle(cls, *filters)
-
-    @classmethod
-    def bind(cls, target: bind_target_alias):
-        return bind(cls, target)
-
-    @classmethod
-    def __rshift__(cls, other: bind_target_alias) -> Type['Keyboard']:
-        cls.bind(other)
-
-        return cls
+        return result
 
     @classmethod
     def customize(cls, text: str) -> Type['Keyboard']:
-        class CustomKeyboard(cls):
-            __text__ = text
+        new = cls.copy()
+        new.__core__.text = text
 
-        return CustomKeyboard
+        return new
 
+    @classmethod
+    def copy(cls) -> Type['Keyboard']:
+        new_core = copy(cls.__core__)
+        new = copy(cls)
+        new.__core__ = new_core
 
-class AbstractKeyboard(Keyboard):
-    def __init__(self, **kwargs):
-        """AbstractKeyboard initialization method
+        return new
 
-        Here you must request need arguments to make keyboard
-        and to all buttons what you want change, and pass to
-        this method kwargs: keys is button names, values is new
-        button text. You can not overwrite method if you not see
-        hints or pass args without keywords.
+    @classmethod
+    def _synchronize_magic_fields(cls):
 
-        """
+        cls.__core__.text = cls.__text__
+        cls.__core__.width = cls.__width__
+        cls.__core__.definition_scope = cls.__definition_scope__
 
-        for key, value in kwargs.items():
-
-            ignore_state = None
-            on_callback = None
-
-            if isinstance(value, str):
-                text = value
-            elif isinstance(value, Button):
-                text = value.text
-                ignore_state = value.ignore_state
-                on_callback = value.on_callback
-            else:
-                raise TypeError("")
-
-            self.change_button(getattr(self, key),
-                               new_text=text,
-                               ignore_state=ignore_state,
-                               on_callback=on_callback)
-
-    def change_button(self,
-                      button: Button,
-                      new_text: str,
-                      ignore_state: bool = None,
-                      on_callback: str = None):
-
-        """ Change button in keyboard """
-
-        self._all.remove(button)
-
-        button = button.alias(text=new_text,
-                              ignore_state=ignore_state,
-                              on_callback=on_callback)
-
-        self._all.append(button)
-
-        return None
+        cls.__core__.synchronize_buttons(
+            orientation=cls.__orientation__,
+            definition_scope=cls.__core__.definition_scope,
+            ignore_state=cls.__ignore_state__
+        )

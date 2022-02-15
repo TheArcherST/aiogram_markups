@@ -4,11 +4,11 @@ from aiogram import Dispatcher
 from aiogram.types import CallbackQuery, Message
 from aiogram.dispatcher.filters.builtin import StateFilter
 
-from ..keyboard import Keyboard
-from ..button import Button
+from aiogram_keyboards.keyboard import Keyboard
+from aiogram_keyboards.core.button import Button
 from ..dialog.cast import CastTelegramObj
-from ..configuration import get_dp
-from ..utils import _hash_text
+from ..configuration import get_dp, logger
+from aiogram_keyboards.core.utils import _hash_text
 
 from .state import State
 
@@ -80,6 +80,8 @@ class Dialog:
             user_id = chat_id
 
         self.core = DialogCore(dp, chat_id, user_id, self._all_states)
+
+        logger.debug(f'Initialized {self}')
 
     async def process(self, on_finish: Callable[[T], Awaitable[None]]):
         """Process dialog
@@ -158,7 +160,7 @@ class Dialog:
         return decorator
 
     def __repr__(self):
-        return repr(self._all_states)
+        return f'<Dialog {self.__class__.__name__} at {self.core.chat_id}>'
 
     __str__ = __repr__
 
@@ -254,13 +256,12 @@ class DialogCore:
                          ) -> Callable[[telegram_object], Awaitable[None]]:
 
         async def handler(obj: Union[Message, CallbackQuery]):
-
             button = Button.from_telegram_object(obj)
 
             async def read_value():
                 try:
                     state.set_result(obj)
-                except (ValueError, IndexError) as e:
+                except (ValueError, IndexError):
                     # keep wait for normal input
                     await self.previous(step=1)
 

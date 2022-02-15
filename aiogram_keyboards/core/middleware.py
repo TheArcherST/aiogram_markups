@@ -15,6 +15,9 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.middlewares import BaseMiddleware
 
 from .button import Button
+from .dialog_meta import DialogMeta
+
+from ..configuration import logger
 
 
 class KeyboardStatesMiddleware(BaseMiddleware):
@@ -24,19 +27,21 @@ class KeyboardStatesMiddleware(BaseMiddleware):
         super().__init__()
 
     async def on_pre_process_message(self, message: Message, *_args):
-
         if message.text is None:
             return None
 
-        if (button := Button.from_telegram_object(message)) is None:
+        if (button := await Button.from_telegram_object(message)) is None:
             return None
+        else:
+            meta = DialogMeta(message)
+            logger.debug(f'Detected button `{button}` press at {meta.chat_id}:{meta.user_id}')
 
-        if button.ignore_state:
-            state = self.dp.current_state(chat=message.chat.id, user=message.from_user.id)
-            await state.reset_state()
+            if button.ignore_state:
+                state = self.dp.current_state(chat=message.chat.id, user=message.from_user.id)
+                await state.reset_state()
 
     async def on_pre_process_callback_query(self, call: CallbackQuery, *_args):
-        if (button := Button.from_telegram_object(call)) is None:
+        if (button := await Button.from_telegram_object(call)) is None:
             return None
 
         if button.ignore_state:
@@ -51,7 +56,7 @@ class KeyboardStatesMiddleware(BaseMiddleware):
         if message.text is None:
             return None
 
-        if (button := Button.from_telegram_object(message)) is None:
+        if (button := await Button.from_telegram_object(message)) is None:
             return None
 
         if button.data is not None:
@@ -59,7 +64,7 @@ class KeyboardStatesMiddleware(BaseMiddleware):
 
     @staticmethod
     async def on_process_callback_query(call: CallbackQuery, *_args):
-        if (button := Button.from_telegram_object(call)) is None:
+        if (button := await Button.from_telegram_object(call)) is None:
             return None
 
         if button.data is not None:

@@ -1,8 +1,9 @@
 from typing import Type, Optional, TYPE_CHECKING
 
-from ..keyboard import Keyboard
+from aiogram_keyboards.keyboard import Keyboard
 from ..dialog.cast import CastTelegramObj
-from ..utils import _hash_text
+from aiogram_keyboards.core.utils import _hash_text
+from ..configuration import logger
 
 
 if TYPE_CHECKING:
@@ -34,7 +35,14 @@ class State:
         self._dialog = dialog
 
     def set_result(self, obj: Optional['telegram_object']) -> None:
-        self._result = self.convertor(obj)
+
+        try:
+            self._result = self.convertor(obj)
+        except Exception:
+            logger.debug(f'{self}: error while cast result')
+            raise
+        else:
+            logger.debug(f'{self}: result is set')
 
         return None
 
@@ -51,7 +59,12 @@ class State:
         else:
             status = 'Processing'
 
-        return f'<{status} state "{self.name}">'
+        if self._dialog is not None:
+            chat_postfix = f' at {self._dialog.chat_id}'
+        else:
+            chat_postfix = ''
+
+        return f'<{status} state "{self.name}"' + chat_postfix + '>'
 
     @property
     def is_finished(self) -> bool:
