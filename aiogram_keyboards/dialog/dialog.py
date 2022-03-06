@@ -8,7 +8,7 @@ from aiogram_keyboards.keyboard import Keyboard
 from aiogram_keyboards.core.button import Button
 from ..dialog.cast import CastTelegramObj
 from ..configuration import get_dp, logger
-from aiogram_keyboards.core.utils import _hash_text
+from aiogram_keyboards.core.utils import hash_text
 
 from .state import State
 
@@ -39,7 +39,7 @@ class Dialog:
             for button in i.keyboard.get_choices():
                 result += button.hex_hash()
 
-        result = _hash_text(result)
+        result = hash_text(result)
 
         return result
 
@@ -280,7 +280,7 @@ class DialogCore:
             else:
                 current = self.current
 
-                await current.keyboard.process(self.chat_id)
+                await current.keyboard.process()
 
         return handler
 
@@ -327,6 +327,6 @@ class DialogCore:
             for button in i.keyboard.get_choices():
                 result += button.hex_hash()
 
-        result = _hash_text(result)
+        result = hash_text(result)
 
         return result

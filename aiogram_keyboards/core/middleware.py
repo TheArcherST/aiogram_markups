@@ -34,7 +34,7 @@ class KeyboardStatesMiddleware(BaseMiddleware):
             return None
         else:
             meta = DialogMeta(message)
-            logger.debug(f'Detected button `{button}` press at {meta.chat_id}:{meta.user_id}')
+            logger.debug(f'Detected button `{button}` press at {meta.chat_id}:{meta.from_user.id}')
 
             if button.ignore_state:
                 state = self.dp.current_state(chat=message.chat.id, user=message.from_user.id)

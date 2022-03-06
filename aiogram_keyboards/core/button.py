@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Union, Type, TYPE_CHECKING, Callable, Iterable, Optional
+from typing import Any, Union, Type, TYPE_CHECKING, Callable, Iterable, Optional, Awaitable
 import traceback
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
@@ -10,7 +10,7 @@ from ..configuration import get_dp, logger
 
 from .tools.bind import bind, bind_target_alias
 from .tools.handle import handle
-from .utils import BoolFilter, _hash_text
+from .utils import BoolFilter, hash_text
 from .dialog_meta import meta_able_alias, DialogMeta
 
 
@@ -123,7 +123,7 @@ class DefinitionScope:
         meta = DialogMeta(meta)
 
         dp = get_dp()
-        state = dp.current_state(chat=meta.chat_id, user=meta.user_id)
+        state = dp.current_state(chat=meta.chat_id, user=meta.from_user.id)
 
         await state.set_state(self.state)
 
@@ -147,13 +147,15 @@ class Button:
     _exemplars: dict[int, list['Button']] = dict()
 
     def __init__(self,
-                 text: Any,
+                 text: Optional[str],
+                 data: str = None, *,
                  ignore_state: bool = None,
                  definition_scope: DefinitionScope = None,
                  on_callback: str = None,
-                 data: str = None,
                  orientation: int = None,
-                 action: Type['DialogAction'] = None) -> None:
+                 action: Type['DialogAction'] = None,
+                 validator: Callable[['DialogMeta'], Awaitable[bool]] = None,
+                 is_global: bool = None) -> None:
 
         """Button initialization method
 
@@ -161,11 +163,13 @@ class Button:
 
         """
 
-        self.text = str(text)
+        self.text = text
         self.ignore_state = ignore_state
         self.on_callback = on_callback
         self.data = data
         self.orientation = orientation
+        self.validator = validator
+        self.is_global = is_global
 
         self._definition_scope = definition_scope
 
@@ -203,6 +207,9 @@ class Button:
 
         result = context_filter.__and__(content_filter)
 
+        if self.validator is not None:
+            result = result.__and__(self.validator)
+
         return result
 
     def check_content(self, obj: Union[Message, CallbackQuery]) -> bool:
@@ -219,6 +226,8 @@ class Button:
             result = obj.text == self.text
         elif isinstance(obj, CallbackQuery):
             result = obj.data == self.inline().callback_data
+        elif isinstance(obj, DialogMeta):
+            result = obj.content == self.text
         else:
             result = False
 
@@ -245,22 +254,25 @@ class Button:
         obj = Button(text=text,
                      ignore_state=ignore_state,
                      on_callback=on_callback,
-                     definition_scope=self.definition_scope)
+                     definition_scope=self.definition_scope,
+                     validator=self.validator)
 
         self._linked.append(obj)
 
         return obj
 
     def __str__(self) -> str:
-        return self.text
+        return str(self.text)
 
     def __repr__(self):
-        return (f"<Button text='{self.text}' "
-                f"data={self.data}>")
+        if self.text is None:
+            return f'<Abstract Button at {self.definition_scope}>'
+        else:
+            return f"<Button text='{self.text}' data='{self.data}'>"
 
     def hex_hash(self):
         if self.definition_scope is not None:
-            result = _hash_text(self.text + self.definition_scope.state)
+            result = hash_text(str(self.text) + self.definition_scope.state)
         else:
             result = hex(self.__content_hash__())
 
@@ -270,7 +282,7 @@ class Button:
         return int(self.hex_hash(), base=16)
 
     def __content_hash__(self) -> int:
-        content_hex_hash = _hash_text(self.text)
+        content_hex_hash = hash_text(self.text)
         result = int(content_hex_hash, base=16)
 
         return result
@@ -394,10 +406,25 @@ class Button:
 
         """
 
-        hash_ = int(_hash_text(text), base=16)
+        hash_ = int(hash_text(text), base=16)
         result = cls._from_hash(hash_)
 
         return result
+
+    @classmethod
+    async def _search_by_validator(cls, obj: typing.Union[CallbackQuery, Message]):
+        for lst in cls._exemplars.values():
+            for i in lst:
+
+                if not i.is_global:
+                    continue
+                if not i.validator:
+                    continue
+
+                if await i.validator(DialogMeta(obj)):
+                    return i
+
+        return None
 
     @classmethod
     async def from_telegram_object(cls,
@@ -423,7 +450,12 @@ class Button:
             else:
                 raise TypeError(f"Can't initialize button from object with type {type(obj)}")
         except KeyError:
-            return None
+            button = await cls._search_by_validator(obj)
+
+            if button is not None:
+                buttons = [button]
+            else:
+                return None
 
         # Secondly, we search for button with need definition_scope by filter.
 

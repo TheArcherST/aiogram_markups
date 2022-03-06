@@ -1,9 +1,11 @@
+from typing import Optional
+
 import hashlib
 
 from aiogram.dispatcher.filters import Filter
 
 
-def _hash_text(string: str) -> str:
+def hash_text(string: Optional[str]) -> str:
     """Hash text function
 
     Hashing use to detect buttons from callback_data.
@@ -16,6 +18,9 @@ def _hash_text(string: str) -> str:
         Text, hashed by algorithm `MD5`, hex value
 
     """
+
+    if string is None:
+        return '0'
 
     hash_ = hashlib.md5(string.encode('utf-8'))
     result = hash_.hexdigest()

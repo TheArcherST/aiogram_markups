@@ -1,6 +1,6 @@
 from typing import Union, TYPE_CHECKING, Any
 
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, User
 
 from .helpers import MarkupType
 
@@ -27,6 +27,9 @@ class Convertor:
         markup_type = Union[Message, CallbackQuery, str]
         data = Any
         state = str
+        content = Union[Message, CallbackQuery, str]
+
+        from_user = Union[Message, CallbackQuery]
 
     @staticmethod
     def chat_id(obj: ConvertAbleAlias.chat_id) -> int:
@@ -35,22 +38,6 @@ class Convertor:
             result = obj.chat.id
         elif isinstance(obj, CallbackQuery):
             result = obj.message.chat.id
-        elif isinstance(obj, str):
-            result = int(obj)
-        elif isinstance(obj, int):
-            result = obj
-        else:
-            raise TypeNotExcepted(obj)
-
-        return result
-
-    @staticmethod
-    def user_id(obj: ConvertAbleAlias.user_id) -> int:
-
-        if isinstance(obj, Message):
-            result = obj.from_user.id
-        elif isinstance(obj, CallbackQuery):
-            result = obj.from_user.id
         elif isinstance(obj, str):
             result = int(obj)
         elif isinstance(obj, int):
@@ -110,6 +97,28 @@ class Convertor:
 
         return result
 
+    @staticmethod
+    def from_user(obj: ConvertAbleAlias.from_user) -> User:
+        if isinstance(obj, (Message, CallbackQuery)):
+            result = obj.from_user
+        else:
+            raise TypeNotExcepted(obj)
+
+        return result
+
+    @staticmethod
+    def content(obj: ConvertAbleAlias.content) -> str:
+        if isinstance(obj, Message):
+            result = obj.text
+        elif isinstance(obj, CallbackQuery):
+            result = obj.data
+        elif isinstance(obj, str):
+            result = obj
+        else:
+            raise TypeNotExcepted(obj)
+
+        return result
+
 
 meta_able_alias = Union[Message, CallbackQuery]
 
@@ -127,11 +136,16 @@ class DialogMeta:
                  button: 'Button' = None,
                  state: str = '*'):
 
+        if isinstance(obj, DialogMeta):
+            self.__dict__ = obj.__dict__
+            return
+
         self.chat_id = Convertor.chat_id(obj)
-        self.user_id = Convertor.user_id(obj)
+        self.from_user = Convertor.from_user(obj)
         self.active_message_id = Convertor.message_id(obj)
         self.markup_type = Convertor.markup_type(obj)
         self.data = Convertor.data(obj)
+        self.content = Convertor.content(obj)
         self.state = Convertor.state(state)
 
         self.button = button

@@ -1,21 +1,25 @@
-from typing import Callable, overload, Literal, Awaitable, Union
+from typing import Callable, overload, Literal, Awaitable, Union, Type, Optional
 
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, Message
 
-from ..configuration import get_dp, logger, context
+from ..configuration import get_dp, logger
 
 from .button import Button, DefinitionScope
 from .helpers import MarkupType, Orientation, MarkupScope
 from .dialog_meta import meta_able_alias, DialogMeta
-from .utils import BoolFilter, _hash_text
+from .utils import BoolFilter, hash_text
 from .tools.handle import handle
 
 
 class MarkupBehavior:
     def __init__(self,
-                 handler: Callable[[DialogMeta], Awaitable[None]] = None):
+                 handler: Callable[[DialogMeta], Awaitable[None]] = None,
+                 validator: Callable[[DialogMeta], Awaitable[bool]] = None,
+                 is_global: bool = False):
 
         self._handler = handler
+        self.validator = validator
+        self.is_global = is_global
 
     @property
     def handler(self):
@@ -26,7 +30,13 @@ class MarkupBehavior:
             meta = DialogMeta(obj,
                               button=button)
 
-            result = await self._handler(meta)
+            if self.validator is not None:
+                if await self.validator(meta):
+                    result = await self._handler(meta)
+                else:
+                    result = None
+            else:
+                result = await self._handler(meta)
 
             return result
 
@@ -58,9 +68,25 @@ class Markup:
                                  definition_scope=self.definition_scope)
 
     def apply_behavior(self, behavior: MarkupBehavior) -> None:
+
+        # TODO: Refactor.
+
         if behavior.handler is not None:
-            factory = handle(self.filter())
+            if behavior.is_global:
+                content_validator = behavior.validator or BoolFilter(True)
+            else:
+                content_validator = self.filter(include_scope=False)
+
+            async def new_validator(obj):
+                obj = DialogMeta(obj)
+                return (bool(await content_validator(obj))
+                        & bool(await self.definition_scope.filter(obj)))
+
+            factory = handle(new_validator)
             factory(behavior.handler)
+
+        self.synchronize_buttons(validator=behavior.validator,
+                                 is_global=behavior.is_global)
 
     def handle(self, func: Callable, *filters) -> None:
         create_handler = handle(self.filter(), *filters)
@@ -73,12 +99,7 @@ class Markup:
         result = self._definition_scope
 
         if result is None:
-            if context.state is not None:
-                state = context.state
-                self._definition_scope = DefinitionScope(state=state)
-            else:
-                state = context.state or self.hex_hash()
-
+            state = self.hex_hash()
             result = DefinitionScope(state=state)
 
         return result
@@ -96,11 +117,14 @@ class Markup:
                             orientation: str = None,
                             ignore_state: bool = None,
                             definition_scope: DefinitionScope = None,
+                            is_global: bool = None,
+                            validator: Callable[[DialogMeta], Awaitable[bool]] = None,
                             **kwargs) -> None:
 
         ...
 
-    def synchronize_buttons(self, soft: bool = True, **kwargs) -> None:
+    def synchronize_buttons(self,
+                            soft: bool = True, **kwargs) -> None:
 
         """Synchronize buttons method
 
@@ -131,7 +155,7 @@ class Markup:
         """
 
         self.buttons = sorted(self.buttons,
-                              key=lambda button: button.orientation)
+                              key=lambda button: button.orientation or Orientation.UNDEFINED)
 
         return None
 
@@ -153,12 +177,21 @@ class Markup:
 
         return None
 
+    @property
+    def is_null(self) -> bool:
+        if len(self.buttons) != 1:
+            return False
+
+        result = self.buttons[0].text is None
+
+        return result
+
     @overload
-    def get_markup(self, markup_type: Literal['TEXT', None]) -> ReplyKeyboardMarkup:
+    def get_markup(self, markup_type: Literal['TEXT', None]) -> Optional[ReplyKeyboardMarkup]:
         ...
 
     @overload
-    def get_markup(self, markup_type: Literal['INLINE']) -> InlineKeyboardMarkup:
+    def get_markup(self, markup_type: Literal['INLINE']) -> Optional[InlineKeyboardMarkup]:
         ...
 
     def get_markup(self,
@@ -169,6 +202,9 @@ class Markup:
         Get TEXT or INLINE markup
 
         """
+
+        if self.is_null:
+            return None
 
         if markup_type is None:
             markup_type = MarkupType.TEXT
@@ -224,7 +260,7 @@ class Markup:
         dp = get_dp()
         reply_markup = self.get_markup(markup_type)
 
-        logger.debug(f"Processing markup `{self.__class__.__name__}` at {meta.chat_id}:{meta.user_id}")
+        logger.debug(f"Processing `{self.definition_scope.state}` at {meta.chat_id}:{meta.from_user.id}")
 
         if isinstance(self.text, str):
             text = self.text
@@ -249,7 +285,7 @@ class Markup:
 
         return response
 
-    def filter(self):
+    def filter(self, include_scope: bool = True):
         """Filter for KeyBoard
 
         Creates filter that union all KeyBoard buttons,
@@ -260,7 +296,10 @@ class Markup:
         result = BoolFilter(False)
 
         for i in self.buttons:
-            result = result.__or__(i.filter())
+            if include_scope:
+                result = result.__or__(i.filter())
+            else:
+                result = result.__or__(i.check_content)
 
         return result
 
@@ -270,7 +309,7 @@ class Markup:
         for i in self.buttons:
             summary += str(i.__content_hash__())
 
-        result = _hash_text(summary)
+        result = hash_text(summary)
 
         return result
 
@@ -278,3 +317,11 @@ class Markup:
         result = int(self.hex_hash(), 16)
 
         return result
+
+    def append(self, obj: Button):
+        self.buttons.append(obj)
+        self.synchronize_buttons(definition_scope=self.definition_scope)
+
+    def extend(self, objects: list[Button]):
+        self.buttons.extend(objects)
+        self.synchronize_buttons(definition_scope=self.definition_scope)

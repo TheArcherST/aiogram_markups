@@ -2,7 +2,7 @@ from typing import Type, Optional, TYPE_CHECKING
 
 from aiogram_keyboards.keyboard import Keyboard
 from ..dialog.cast import CastTelegramObj
-from aiogram_keyboards.core.utils import _hash_text
+from aiogram_keyboards.core.utils import hash_text
 from ..configuration import logger
 
 
@@ -76,9 +76,9 @@ class State:
         """
 
         dialog_hash = self.dialog.hex_hash()
-        result = dialog_hash + _hash_text(f'::state-{self.name}::')
+        result = dialog_hash + hash_text(f'::state-{self.name}::')
 
-        return _hash_text(result)
+        return hash_text(result)
 
     async def set(self):
         """

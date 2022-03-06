@@ -1,6 +1,7 @@
 import abc
-from typing import Union, Type, Iterable, Optional, Callable, Awaitable, overload
+from typing import Union, Type, Iterable, Optional, Callable, Awaitable, Literal, TypeVar
 from copy import copy
+
 
 from aiogram.types import ReplyKeyboardMarkup, Message, CallbackQuery
 
@@ -8,9 +9,14 @@ from .core.helpers import MarkupType, Orientation
 from .core.button import Button
 from .core.markup import Markup as MarkupCore, MarkupBehavior
 from .core.dialog_meta import DialogMeta
+from .core.button import DefinitionScope
+from .validator import Validator
 
 
-class Meta(type):
+T = TypeVar('T')
+
+
+class Meta(type, abc.ABC):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
@@ -22,44 +28,117 @@ class Meta(type):
         else:
             raise ValueError(f"Can't use `{other}` in OR expression with Keyboard")
 
+    def __rshift__(self: Type['Keyboard'], other: Type['Keyboard']):
+        self._LINKED.append(other)
+
+    @property
+    def chain(self: Type['Keyboard']):
+        def method(other: Type['Keyboard']):
+            self >> other
+            return other
+        return method
+
 
 class Keyboard(metaclass=Meta):
-    """Text markup states helper
+    """Keyboard object
+
+    Due it, you can make more thing, here explained only one.
+    You able to make keyboards, that can be processes both in
+    the text context and in the callback.
 
     >>> class MainMenu(Keyboard):
-    ...    new_application = Button('🔥 Новая сделка')
-    ...    licence = Button('⁉️ Правила')
-    ...    support = Button('⚠️Поддержка')
+    ...    __text__ = 'Main menu'
+    ...
+    ...    account = Button('My account')  # row 1
+    ...    support = Button('Support')  # row 1
+    ...    licence = Button('Licence')  # row 2
 
+    Handle result you can by write handler right in keyboard body.
+
+    >>> class MainMenu(Keyboard):
+    ...     ...
+    ...
+    ...     async def handler(self, meta: DialogMeta):
+    ...         message = meta.source
+    ...
+    ...         await message.answer(f'Your answer: {message.text}')  # equals to meta.content
+
+    To process, just call method `Keyboard.process`.
+
+    Explore all features in documentation.
 
     """
 
-    __text__: Optional[Union[str, Callable[['Keyboard', DialogMeta], Awaitable[Optional[str]]]]]
-
     async def __text__(self, meta: DialogMeta) -> Optional[str]:
+        """ Method to construct text """
+
         return None
 
-    __orientation__ = Orientation.UNDEFINED
-    __ignore_state__ = False
-    __definition_scope__ = None
-    __width__ = 1
-    __buttons__ = []
+    async def handler(self, meta: DialogMeta) -> None:
+        """ Method what was called on keyboard mention detect """
 
-    __core__: Optional[MarkupCore] = None
-
-    def __init__(self, meta: DialogMeta):
-        self.meta = meta
-
-    async def handler(self) -> None:
         pass
 
-    @classmethod
-    def get_choices(cls) -> list[Button]:
-        """ Get all buttons """
+    async def validate(self, meta: DialogMeta) -> bool:
+        """
+        Validate keyboard mention
 
-        return cls.__core__.buttons
+        Note: Global keyboards mention contains any incoming update.
+              Use validator like filter for global keyboards
+
+        """
+
+        pass
+
+    __text__: Optional[Union[str, Callable[['Keyboard', DialogMeta], Awaitable[Optional[str]]]]]
+    __validator__: Validator = None
+    __orientation__ = Orientation.UNDEFINED
+    __ignore_state__ = False
+    __width__ = 1
+    __global__ = False
+    __definition_scope__: DefinitionScope = None
+    __state__ = None  # simple `definition scope` state define
+
+    __core__: Optional[MarkupCore] = None
+    __buttons__ = []
+
+    _ALL_STATES: list[str] = []
+    _LINKED: list[Type['Keyboard']] = []
+    _CONTEXT = None
+
+    def __class_getitem__(cls, item: Literal[None, False]):
+        """
+        Method to set __init_subclass__ mode.
+
+        Usage:
+
+        >>> class KeyboardWithLogging(Keyboard[False]):
+        ...
+        ...     async def handler(self, meta: DialogMeta):
+        ...         print(f'Received message from {meta.from_user.first_name}!')
+
+
+        :case  None: Default mode - full initialization.
+        :case False: Just scheme for inherit, no initialization.
+                     Use this keyboard ONLY for inherit
+
+        """
+
+        cls._CONTEXT = item
+
+        return cls
 
     def __init_subclass__(cls, **kwargs):
+        cls._LINKED = []
+
+        # marker to initialize null keyboard
+        if cls._CONTEXT is False:
+
+            cls._CONTEXT = None
+            cls.__base__._CONTEXT = None
+
+            return
+
         cls.__core__ = MarkupCore()
 
         # select all buttons from cls
@@ -75,10 +154,36 @@ class Keyboard(metaclass=Meta):
 
         recursive_buttons_collect(cls)
 
+        # Add zero button to Button engine was able to locate validator
+        if len(buttons) == 0:
+            buttons.append(Button(None))
+            cls.__global__ = True  # if no buttons, keyboard is global
+
         cls.__core__.buttons = buttons
         cls._synchronize_magic_fields()
 
-        cls.__core__.apply_behavior(MarkupBehavior(handler=cls.handler))
+        if cls.__validator__ is not None:
+            validator = cls.__validator__.validate
+        elif cls.validate != Keyboard.validate:
+            validator = cls().validate
+        else:
+            validator = None
+
+        async def handler(meta: DialogMeta):
+            await cls().handler(meta)
+
+            for i in cls._LINKED:
+                await i.process(meta.source)
+
+        cls.__core__.apply_behavior(MarkupBehavior(handler=handler,
+                                                   validator=validator,
+                                                   is_global=cls.__global__))
+
+    @classmethod
+    def get_choices(cls) -> list[Button]:
+        """ Get all buttons """
+
+        return cls.__core__.buttons
 
     @classmethod
     def get_markup(cls) -> ReplyKeyboardMarkup:
@@ -122,10 +227,10 @@ class Keyboard(metaclass=Meta):
         Append button or all keyboard
         """
 
-        if Button in obj.__bases__:
-            cls.__core__.buttons.append(obj)
+        if isinstance(obj, Button):
+            cls.__core__.append(obj)
         elif Keyboard in obj.__bases__:
-            cls.__core__.buttons.extend(obj.__core__.buttons)
+            cls.__core__.extend(obj.__core__.buttons)
         else:
             raise NotImplementedError('Method support only `Button` '
                                       'and `Keyboard` types')
@@ -165,11 +270,40 @@ class Keyboard(metaclass=Meta):
         return new
 
     @classmethod
+    def _unique_context_state(cls) -> str:
+        def validate(text: str):
+            return text not in cls._ALL_STATES
+
+        result = cls.__name__
+
+        if not validate(result):
+            result += '-' + str(cls._ALL_STATES.count(result))
+
+        return result
+
+    @classmethod
+    def _configure_state(cls):
+        if cls.__state__ is not None:
+            state = cls.__state__
+        else:
+            state = cls._unique_context_state()
+
+        if state is not None:
+            cls.__core__.definition_scope = DefinitionScope(state=state)
+            cls.__definition_scope__ = cls.__core__.definition_scope
+
+        if cls.__core__.definition_scope.state not in cls._ALL_STATES:
+            cls._ALL_STATES.append(cls.__core__.definition_scope.state)
+
+    @classmethod
     def _synchronize_magic_fields(cls):
 
-        cls.__core__.text = cls.__text__
+        cls.__core__.text = cls().__text__
         cls.__core__.width = cls.__width__
         cls.__core__.definition_scope = cls.__definition_scope__
+
+        if cls.__definition_scope__ is None:
+            cls._configure_state()
 
         cls.__core__.synchronize_buttons(
             orientation=cls.__orientation__,
