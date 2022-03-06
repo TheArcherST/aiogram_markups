@@ -10,6 +10,7 @@ from .helpers import MarkupType, Orientation, MarkupScope
 from .dialog_meta import meta_able_alias, DialogMeta
 from .utils import BoolFilter, hash_text
 from .tools.handle import handle
+from .markup_scheme import MarkupScheme, MarkupSchemeButton
 
 
 class MarkupBehavior:
@@ -53,7 +54,8 @@ class Markup:
                  width: int = 1,
                  one_time_keyboard: bool = True,
                  definition_scope: DefinitionScope = None,
-                 markup_scope: str = None):
+                 markup_scope: str = None,
+                 markup_scheme: MarkupScheme = None):
 
         if buttons is None:
             buttons = []
@@ -63,12 +65,29 @@ class Markup:
         self.width = width
         self.one_time_keyboard = one_time_keyboard
         self.markup_scope = markup_scope
+        self.markup_scheme = markup_scheme or MarkupScheme()
 
         self._definition_scope = definition_scope
 
         self.synchronize_buttons(orientation=orientation,
                                  ignore_state=ignore_state,
                                  definition_scope=self.definition_scope)
+
+    @property
+    def rows(self):
+        """ Construct raw rows """
+
+        rows = []
+
+        for i in range(len(self.buttons)):
+            if i % self.width == 0:
+                rows.append([])
+
+            button = self.buttons[i]
+
+            rows[i // self.width].append(MarkupSchemeButton(button=button))
+
+        return rows
 
     def apply_behavior(self, behavior: MarkupBehavior) -> None:
 
@@ -194,15 +213,20 @@ class Markup:
         return result
 
     @overload
-    def get_markup(self, markup_type: Literal['TEXT', None]) -> Optional[ReplyKeyboardMarkup]:
+    async def get_markup(self,
+                         meta: DialogMeta,
+                         markup_type: Literal['TEXT', None]) -> Optional[ReplyKeyboardMarkup]:
         ...
 
     @overload
-    def get_markup(self, markup_type: Literal['INLINE']) -> Optional[InlineKeyboardMarkup]:
+    async def get_markup(self,
+                         meta: DialogMeta,
+                         markup_type: Literal['INLINE']) -> Optional[InlineKeyboardMarkup]:
         ...
 
-    def get_markup(self,
-                   markup_type: Literal['TEXT', 'INLINE'] = None):
+    async def get_markup(self,
+                         meta: DialogMeta,
+                         markup_type: Literal['TEXT', 'INLINE'] = None):
 
         """Get markup method
 
@@ -216,22 +240,7 @@ class Markup:
         if markup_type is None:
             markup_type = MarkupType.TEXT
 
-        if markup_type == MarkupType.TEXT:
-            markup = ReplyKeyboardMarkup(row_width=self.width,
-                                         one_time_keyboard=self.one_time_keyboard,
-                                         resize_keyboard=True)
-
-            for i in self.buttons:
-                markup.add(KeyboardButton(i.text))
-
-        elif markup_type == MarkupType.INLINE:
-            markup = InlineKeyboardMarkup(row_width=self.width)
-
-            for i in self.buttons:
-                markup.add(i.inline())
-
-        else:
-            raise KeyError(f'Unknown markup_type {markup_type}')
+        markup = await self.markup_scheme.get_markup(self.rows, meta, markup_type)
 
         return markup
 
@@ -268,7 +277,7 @@ class Markup:
             markup_type = MarkupType.TEXT
 
         dp = get_dp()
-        reply_markup = self.get_markup(markup_type)
+        reply_markup = await self.get_markup(meta, markup_type)
 
         logger.debug(f"Processing `{self.definition_scope.state}` at {meta.chat_id}:{meta.from_user.id}")
 

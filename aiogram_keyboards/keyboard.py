@@ -3,7 +3,7 @@ from typing import Union, Type, Iterable, Optional, Callable, Awaitable, Literal
 from copy import copy
 
 
-from aiogram.types import ReplyKeyboardMarkup, Message, CallbackQuery
+from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, Message, CallbackQuery
 
 from .core.helpers import MarkupType, Orientation
 from .core.button import Button
@@ -11,6 +11,7 @@ from .core.markup import Markup as MarkupCore, MarkupBehavior
 from .core.dialog_meta import DialogMeta
 from .core.button import DefinitionScope
 from .validator import Validator
+from .core.markup_scheme import MarkupScheme, MarkupConstructor
 
 
 T = TypeVar('T')
@@ -69,10 +70,10 @@ class Keyboard(metaclass=Meta):
 
     """
 
-    async def __text__(self, meta: DialogMeta) -> Optional[str]:
+    async def __text__(self, meta: DialogMeta) -> str:
         """ Method to construct text """
 
-        return None
+        pass
 
     async def handler(self, meta: DialogMeta) -> None:
         """ Method what was called on keyboard mention detect """
@@ -90,6 +91,19 @@ class Keyboard(metaclass=Meta):
 
         pass
 
+    async def markup_construct(self, meta: DialogMeta, constructor: MarkupConstructor) -> Optional[bool]:
+        """Runtime markup construct.
+
+        DialogMeta and MarkupScheme here. MarkupScheme is default
+        markup of this Keyboard, and you can configure it haw you
+        want.
+
+        :returns: markup is exists
+
+        """
+
+        return True
+
     __text__: Optional[Union[str, Callable[['Keyboard', DialogMeta], Awaitable[Optional[str]]]]]
     __validator__: Validator = None
     __orientation__ = Orientation.UNDEFINED
@@ -101,7 +115,6 @@ class Keyboard(metaclass=Meta):
     __markup_scope__ = 'm+c'
 
     __core__: Optional[MarkupCore] = None
-    __buttons__ = []
 
     _ALL_STATES: list[str] = []
     _LINKED: list[Type['Keyboard']] = []
@@ -187,12 +200,12 @@ class Keyboard(metaclass=Meta):
         return cls.__core__.buttons
 
     @classmethod
-    def get_markup(cls) -> ReplyKeyboardMarkup:
-        return cls.__core__.get_markup(MarkupType.TEXT)
+    async def get_markup(cls, meta: DialogMeta) -> ReplyKeyboardMarkup:
+        return await cls.__core__.get_markup(meta, MarkupType.TEXT)
 
     @classmethod
-    def get_inline_markup(cls):
-        return cls.__core__.get_markup(MarkupType.INLINE)
+    async def get_inline_markup(cls, meta: DialogMeta) -> InlineKeyboardMarkup:
+        return await cls.__core__.get_markup(meta, MarkupType.INLINE)
 
     @classmethod
     def filter(cls):
@@ -303,6 +316,8 @@ class Keyboard(metaclass=Meta):
         cls.__core__.width = cls.__width__
         cls.__core__.markup_scope = cls.__markup_scope__
         cls.__core__.definition_scope = cls.__definition_scope__
+
+        cls.__core__.markup_scheme = MarkupScheme(cls().markup_construct)
 
         if cls.__definition_scope__ is None:
             cls._configure_state()
