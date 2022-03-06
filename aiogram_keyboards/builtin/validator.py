@@ -1,5 +1,7 @@
 from typing import Union, Iterable, Protocol
 
+from aiogram.types import Message
+
 from aiogram_keyboards.validator import Validator
 from aiogram_keyboards.core.dialog_meta import DialogMeta
 
@@ -24,8 +26,12 @@ class String(Validator):
 
     async def validate(self, meta: 'DialogMeta') -> bool:
         if not self.text:
-            return ((meta.source.content_type == 'text')
-                    & (self.null_validate(meta.content)))
+            if isinstance(meta.source, Message):
+                return ((meta.source.content_type == 'text')
+                        & (self.null_validate(meta.content)))
+            else:
+                return self.null_validate(meta.content)
+
         else:
             return meta.content in self.text
 

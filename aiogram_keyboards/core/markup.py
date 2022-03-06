@@ -1,6 +1,7 @@
 from typing import Callable, overload, Literal, Awaitable, Union, Type, Optional
 
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, Message
+from aiogram.utils.exceptions import MessageCantBeEdited, MessageToEditNotFound
 
 from ..configuration import get_dp, logger
 
@@ -51,7 +52,8 @@ class Markup:
                  ignore_state: bool = False,
                  width: int = 1,
                  one_time_keyboard: bool = True,
-                 definition_scope: DefinitionScope = None):
+                 definition_scope: DefinitionScope = None,
+                 markup_scope: str = None):
 
         if buttons is None:
             buttons = []
@@ -60,6 +62,7 @@ class Markup:
         self.text = text
         self.width = width
         self.one_time_keyboard = one_time_keyboard
+        self.markup_scope = markup_scope
 
         self._definition_scope = definition_scope
 
@@ -78,9 +81,13 @@ class Markup:
                 content_validator = self.filter(include_scope=False)
 
             async def new_validator(obj):
-                obj = DialogMeta(obj)
-                return (bool(await content_validator(obj))
-                        & bool(await self.definition_scope.filter(obj)))
+                button = await Button.from_telegram_object(obj)
+                obj = DialogMeta(obj, button=button)
+
+                result = (bool(await content_validator(obj))
+                          & bool(await self.definition_scope.filter(obj)))
+
+                return result
 
             factory = handle(new_validator)
             factory(behavior.handler)
@@ -218,10 +225,10 @@ class Markup:
                 markup.add(KeyboardButton(i.text))
 
         elif markup_type == MarkupType.INLINE:
-            markup = ReplyKeyboardMarkup(row_width=self.width)
+            markup = InlineKeyboardMarkup(row_width=self.width)
 
             for i in self.buttons:
-                markup.add(InlineKeyboardButton(i.text, callback_data=i.data))
+                markup.add(i.inline())
 
         else:
             raise KeyError(f'Unknown markup_type {markup_type}')
@@ -242,6 +249,9 @@ class Markup:
         :returns: Message object
 
         """
+
+        if self.markup_scope is not None:
+            markup_scope = self.markup_scope
 
         if markup_scope is None:
             markup_scope = 'm+c'
@@ -268,13 +278,21 @@ class Markup:
             text = await self.text(meta)
 
         if markup_type == MarkupType.TEXT:
-            response = await dp.bot.send_message(meta.chat_id, text, reply_markup=reply_markup)
+            response = await dp.bot.send_message(chat_id=meta.chat_id,
+                                                 text=text,
+                                                 reply_markup=reply_markup)
 
         elif markup_type == MarkupType.INLINE:
-            response = await dp.bot.edit_message_text(meta.chat_id,
-                                                      text,
-                                                      reply_markup=reply_markup,
-                                                      message_id=meta.active_message_id)
+            try:
+                response = await dp.bot.edit_message_text(chat_id=meta.chat_id,
+                                                          text=text,
+                                                          reply_markup=reply_markup,
+                                                          message_id=meta.active_message_id)
+
+            except (MessageCantBeEdited, MessageToEditNotFound):
+                response = await dp.bot.send_message(chat_id=meta.chat_id,
+                                                     text=text,
+                                                     reply_markup=reply_markup)
 
         else:
             raise KeyError(f"Can't process markup with type {markup_type}")

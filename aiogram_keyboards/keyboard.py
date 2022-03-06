@@ -98,6 +98,7 @@ class Keyboard(metaclass=Meta):
     __global__ = False
     __definition_scope__: DefinitionScope = None
     __state__ = None  # simple `definition scope` state define
+    __markup_scope__ = 'm+c'
 
     __core__: Optional[MarkupCore] = None
     __buttons__ = []
@@ -300,6 +301,7 @@ class Keyboard(metaclass=Meta):
 
         cls.__core__.text = cls().__text__
         cls.__core__.width = cls.__width__
+        cls.__core__.markup_scope = cls.__markup_scope__
         cls.__core__.definition_scope = cls.__definition_scope__
 
         if cls.__definition_scope__ is None:

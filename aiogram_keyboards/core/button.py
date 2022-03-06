@@ -307,7 +307,7 @@ class Button:
             raise ValueError(f'Data prefix must ends on colon, '
                              f'but `{data_prefix}` got')
 
-        callback_data = data_prefix + self.hex_hash()
+        callback_data = data_prefix + hash_text(self.text)
         result = InlineKeyboardButton(self.text, callback_data=callback_data)
 
         return result

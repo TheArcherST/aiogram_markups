@@ -145,9 +145,13 @@ class DialogMeta:
         self.active_message_id = Convertor.message_id(obj)
         self.markup_type = Convertor.markup_type(obj)
         self.data = Convertor.data(obj)
-        self.content = Convertor.content(obj)
         self.state = Convertor.state(state)
 
         self.button = button
+
+        if self.button is not None:
+            self.content = button.data or button.text
+        else:
+            self.content = Convertor.content(obj)
 
         self.source = obj
