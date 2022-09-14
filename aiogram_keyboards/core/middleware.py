@@ -43,6 +43,9 @@ class KeyboardStatesMiddleware(BaseMiddleware):
     async def on_pre_process_callback_query(self, call: CallbackQuery, *_args):
         if (button := await Button.from_telegram_object(call)) is None:
             return None
+        else:
+            meta = DialogMeta(call)
+            logger.debug(f'Detected button `{button}` press at {meta.chat_id}:{meta.from_user.id}')
 
         if button.ignore_state:
             state = self.dp.current_state(chat=call.message.chat.id, user=call.from_user.id)
