@@ -276,15 +276,16 @@ class Markup:
         if markup_type == MarkupType.UNDEFINED:
             markup_type = MarkupType.TEXT
 
-        dp = get_dp()
-        reply_markup = await self.get_markup(meta, markup_type)
-
         logger.debug(f"Processing `{self.definition_scope.state}` at {meta.chat_id}:{meta.from_user.id}")
 
         if isinstance(self.text, str):
             text = self.text
         else:
             text = await self.text(meta)
+
+        reply_markup = await self.get_markup(meta, markup_type)
+
+        dp = get_dp()
 
         if markup_type == MarkupType.TEXT:
             response = await dp.bot.send_message(chat_id=meta.chat_id,
