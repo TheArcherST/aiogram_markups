@@ -35,7 +35,7 @@ def bind_message(origin: bind_origin_alias, target: bind_target_alias) -> None:
     async def handler(message: Message):
         await target.process(message, MarkupType.TEXT)
 
-    dp.register_message_handler(handler, origin.filter(), state='*', content_types=[ContentTypes.ANY])
+    dp.register_message_handler(handler, origin.filter(), state='*', content_types=['any'])
 
     return None
 

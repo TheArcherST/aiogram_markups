@@ -29,7 +29,7 @@ def handle_message(*filters) -> Callable[[Callable], Callable]:
     dp = get_dp()
 
     def deco(handler):
-        dp.register_message_handler(handler, *filters, state='*', content_types=[ContentTypes.ANY])
+        dp.register_message_handler(handler, *filters, state='*', content_types=['any'])
 
         return handler
 
