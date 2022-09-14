@@ -1,5 +1,7 @@
 from typing import Type, Union, Protocol, Callable
 
+from aiogram.types import ContentTypes
+
 from aiogram_keyboards.configuration import get_dp
 
 
@@ -27,7 +29,7 @@ def handle_message(*filters) -> Callable[[Callable], Callable]:
     dp = get_dp()
 
     def deco(handler):
-        dp.register_message_handler(handler, *filters, state='*')
+        dp.register_message_handler(handler, *filters, state='*', content_types=[ContentTypes.ANY])
 
         return handler
 

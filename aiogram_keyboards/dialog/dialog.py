@@ -1,7 +1,7 @@
 from typing import Type, Union, Callable, Awaitable, TypeVar
 
 from aiogram import Dispatcher
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ContentTypes
 from aiogram.dispatcher.filters.builtin import StateFilter
 
 from aiogram_keyboards.keyboard import Keyboard
@@ -149,7 +149,8 @@ class Dialog:
                 await self.process(func)
 
             if commands:
-                dp.register_message_handler(call_dialog, *filters, commands=commands, state=state)
+                dp.register_message_handler(call_dialog, *filters, commands=commands, state=state,
+                                            content_types=[ContentTypes.ANY])
             elif state != '*':
                 dp.register_callback_query_handler(call_dialog, *filters, state=state)
             else:

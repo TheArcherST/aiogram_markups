@@ -1,6 +1,6 @@
 from typing import Type, Union, Protocol, TYPE_CHECKING
 
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ContentTypes
 from aiogram.dispatcher.filters import Filter
 
 from aiogram_keyboards.configuration import get_dp
@@ -35,7 +35,7 @@ def bind_message(origin: bind_origin_alias, target: bind_target_alias) -> None:
     async def handler(message: Message):
         await target.process(message, MarkupType.TEXT)
 
-    dp.register_message_handler(handler, origin.filter(), state='*')
+    dp.register_message_handler(handler, origin.filter(), state='*', content_types=[ContentTypes.ANY])
 
     return None
 
