@@ -98,7 +98,8 @@ class MarkupScheme:
             return None
 
         if markup_type == MarkupType.TEXT:
-            markup = ReplyKeyboardMarkup(resize_keyboard=True)
+            markup = ReplyKeyboardMarkup(resize_keyboard=True,
+                                         one_time_keyboard=True)
         elif markup_type == MarkupType.INLINE:
             markup = InlineKeyboardMarkup()
         else:
