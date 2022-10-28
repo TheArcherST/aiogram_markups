@@ -1,0 +1,6 @@
+pytest~=6.2.5
+pytest-asyncio
+aiogram~=2.15
+loguru~=0.6.0
+setuptools~=65.3.0
+tabulate~=0.8.9
