@@ -8,6 +8,10 @@ from aiogram_keyboards.configuration import get_dp
 from ..helpers import MarkupType
 
 
+if TYPE_CHECKING:
+    from aiogram_keyboards.keyboard import Keyboard
+
+
 class FilterAble(Protocol):
     @classmethod
     def filter(cls, *args, **kwargs) -> Filter:
