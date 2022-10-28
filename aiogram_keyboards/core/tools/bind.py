@@ -26,7 +26,7 @@ def bind_call(origin: bind_origin_alias, target: bind_target_alias) -> None:
     dp = get_dp()
 
     async def handler(call: CallbackQuery):
-        await target.process(call.message, MarkupType.INLINE, active_message=call.message.message_id)
+        await target.process(call.message, MarkupType.INLINE)
 
     dp.register_callback_query_handler(handler, origin.filter(), state='*')
 
