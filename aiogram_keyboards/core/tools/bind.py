@@ -1,6 +1,6 @@
 from typing import Type, Union, Protocol, TYPE_CHECKING
 
-from aiogram.types import Message, CallbackQuery, ContentTypes
+from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.filters import Filter
 
 from aiogram_keyboards.configuration import get_dp

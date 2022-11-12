@@ -1,6 +1,6 @@
-from typing import Callable, overload, Literal, Awaitable, Union, Type, Optional
+from typing import Callable, overload, Literal, Awaitable, Union, Optional
 
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, Message
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, Message
 from aiogram.utils.exceptions import MessageCantBeEdited, MessageToEditNotFound
 
 from ..configuration import get_dp, logger

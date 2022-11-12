@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Union, Type, TYPE_CHECKING, Callable, Iterable, Optional, Awaitable
+from typing import Any, Union, Callable, Iterable, Optional, Awaitable
 import traceback
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
@@ -12,10 +12,6 @@ from .tools.bind import bind, bind_target_alias
 from .tools.handle import handle
 from .utils import BoolFilter, hash_text
 from .dialog_meta import meta_able_alias, DialogMeta
-
-
-if TYPE_CHECKING:
-    from aiogram_keyboards.dialog.action import DialogAction
 
 
 def group_content_filter(*buttons: 'Button'):
@@ -153,7 +149,6 @@ class Button:
                  definition_scope: DefinitionScope = None,
                  on_callback: str = None,
                  orientation: int = None,
-                 action: Type['DialogAction'] = None,
                  validator: Callable[['DialogMeta'], Awaitable[bool]] = None,
                  is_global: bool = None) -> None:
 
@@ -172,8 +167,6 @@ class Button:
         self.is_global = is_global
 
         self._definition_scope = definition_scope
-
-        self.action = action
 
         self._linked: list[Button] = []
 
