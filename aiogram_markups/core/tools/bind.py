@@ -3,13 +3,13 @@ from typing import Type, Union, Protocol, TYPE_CHECKING
 from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.filters import Filter
 
-from aiogram_keyboards.configuration import get_dp
+from aiogram_markups.configuration import get_dp
 
 from ..helpers import MarkupType
 
 
 if TYPE_CHECKING:
-    from aiogram_keyboards.keyboard import Keyboard
+    from aiogram_markups.keyboard import Keyboard
 
 
 class FilterAble(Protocol):

@@ -3,7 +3,7 @@ from aiogram.types import Message
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_polling
 
-from aiogram_keyboards import Keyboard, Button, setup_aiogram_keyboards, Orientation
+from aiogram_markups import Keyboard, Button, setup_aiogram_keyboards, Orientation
 
 
 # ====== initialization =======

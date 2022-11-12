@@ -11,7 +11,7 @@ logger = logger
 def setup_aiogram_keyboards(dp: Dispatcher):
     global DP
 
-    from aiogram_keyboards.core.middleware import KeyboardStatesMiddleware
+    from aiogram_markups.core.middleware import KeyboardStatesMiddleware
 
     dp.setup_middleware(KeyboardStatesMiddleware(dp))
     DP = dp
@@ -28,5 +28,5 @@ def get_dp() -> Dispatcher:
         logger.critical("Aiogram Keyboards don't installed - Dispatcher not found")
 
         raise RuntimeError('Dispatcher not found',
-                           'Please, call setup method of module `aiogram_keyboards`, '
+                           'Please, call setup method of module `aiogram_markups`, '
                            'method `setup_aiogram_keyboards`')

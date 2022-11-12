@@ -1,7 +1,7 @@
-Aiogram keyboards
-=================
+Aiogram markups
+===============
 
-The package helps you construct and use inline or text keyboards.
+The package helps you construct and use inline or text markups.
 
 
 Simple usage
@@ -11,7 +11,7 @@ Let's start with example
 
 ```python
 
-from aiogram_keyboards import Keyboard, Button
+from aiogram_markups import Keyboard, Button
 
 class MainMenu(Keyboard):
     settings = Button('Settings')
@@ -33,7 +33,7 @@ dp = Dispatcher(bot)
 @dp.message_handler(commands=['start'])
 async def start_handler(message):
     await message.answer(
-        "Hi, im message with keyboard powered on aiogram_keyboards",
+        "Hi, im message with keyboard powered on aiogram_markups",
         reply_markup=MainMenu.get_markup()
     )
 
@@ -68,7 +68,7 @@ all functional, let's look in following code:
 
 ```python
 
-from aiogram_keyboards import setup_aiogram_keyboards
+from aiogram_markups import setup_aiogram_keyboards
 
 
 setup_aiogram_keyboards(dp)
@@ -127,7 +127,7 @@ use following feature:
 
 ```python
 
-from aiogram_keyboards import Orientation
+from aiogram_markups import Orientation
 
 
 class CancelKeyboard(Keyboard):

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from aiogram_keyboards.core.dialog_meta import DialogMeta
+from aiogram_markups.core.dialog_meta import DialogMeta
 
 
 class Validator:
