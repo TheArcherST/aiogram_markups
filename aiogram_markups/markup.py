@@ -7,7 +7,7 @@ from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, Message, Ca
 
 from .core.helpers import MarkupType, Orientation
 from .core.button import Button
-from .core.markup import Markup as MarkupCore, MarkupBehavior
+from .core.markup_core import MarkupCore, MarkupBehavior
 from .core.dialog_meta import DialogMeta
 from .core.button import DefinitionScope
 from .validator import Validator
@@ -17,37 +17,37 @@ from .core.markup_scheme import MarkupScheme, MarkupConstructor
 T = TypeVar('T')
 
 
-class Meta(type, abc.ABC):
+class MarkupMeta(type, abc.ABC):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
 
-    def __or__(self: Type['Keyboard'], other: Union[Type['Keyboard'], str]) -> Type['Keyboard']:
+    def __or__(self: Type['Markup'], other: Union[Type['Markup'], str]) -> Type['Markup']:
         if isinstance(other, self.__class__):
             return self.__or__(other)
         elif isinstance(other, str):
             return self.customize(other)
         else:
-            raise ValueError(f"Can't use `{other}` in OR expression with Keyboard")
+            raise ValueError(f"Can't use `{other}` in OR expression with Markup")
 
-    def __rshift__(self: Type['Keyboard'], other: Type['Keyboard']):
+    def __rshift__(self: Type['Markup'], other: Type['Markup']):
         self._LINKED.append(other)
 
     @property
-    def chain(self: Type['Keyboard']):
-        def method(other: Type['Keyboard']):
+    def chain(self: Type['Markup']):
+        def method(other: Type['Markup']):
             self >> other
             return other
         return method
 
 
-class Keyboard(metaclass=Meta):
+class Markup(metaclass=MarkupMeta):
     """Keyboard object
 
     Due it, you can make more thing, here explained only one.
     You able to make keyboards, that can be processes both in
     the text context and in the callback.
 
-    >>> class MainMenu(Keyboard):
+    >>> class MainMenu(Markup):
     ...    __text__ = 'Main menu'
     ...
     ...    account = Button('My account')  # row 1
@@ -56,7 +56,7 @@ class Keyboard(metaclass=Meta):
 
     Handle result you can by write handler right in keyboard body.
 
-    >>> class MainMenu(Keyboard):
+    >>> class MainMenu(Markup):
     ...     ...
     ...
     ...     async def handler(self, meta: DialogMeta):
@@ -95,7 +95,7 @@ class Keyboard(metaclass=Meta):
         """Runtime markup construct.
 
         DialogMeta and MarkupScheme here. MarkupScheme is default
-        markup of this Keyboard, and you can configure it haw you
+        markup of this Markup, and you can configure it haw you
         want.
 
         :returns: markup is exists
@@ -104,7 +104,7 @@ class Keyboard(metaclass=Meta):
 
         return True
 
-    __text__: Optional[Union[str, Callable[['Keyboard', DialogMeta], Awaitable[Optional[str]]]]]
+    __text__: Optional[Union[str, Callable[['Markup', DialogMeta], Awaitable[Optional[str]]]]]
     __validator__: Validator = None
     __orientation__ = Orientation.UNDEFINED
     __ignore_state__ = False
@@ -117,7 +117,7 @@ class Keyboard(metaclass=Meta):
     __core__: Optional[MarkupCore] = None
 
     _ALL_STATES: list[str] = []
-    _LINKED: list[Type['Keyboard']] = []
+    _LINKED: list[Type['Markup']] = []
     _CONTEXT = None
 
     def __class_getitem__(cls, item: Literal[None, False]):
@@ -126,7 +126,7 @@ class Keyboard(metaclass=Meta):
 
         Usage:
 
-        >>> class KeyboardWithLogging(Keyboard[False]):
+        >>> class KeyboardWithLogging(Markup[False]):
         ...
         ...     async def handler(self, meta: DialogMeta):
         ...         print(f'Received message from {meta.from_user.first_name}!')
@@ -163,7 +163,7 @@ class Keyboard(metaclass=Meta):
                             for value in vars(cls_).values()
                             if isinstance(value, Button)])
 
-            if cls_.__base__ != Keyboard:
+            if cls_.__base__ != Markup:
                 return recursive_buttons_collect(cls_.__base__)
 
         recursive_buttons_collect(cls)
@@ -178,7 +178,7 @@ class Keyboard(metaclass=Meta):
 
         if cls.__validator__ is not None:
             validator = cls.__validator__.validate
-        elif cls.validate != Keyboard.validate:
+        elif cls.validate != Markup.validate:
             validator = cls().validate
         else:
             validator = None
@@ -212,7 +212,7 @@ class Keyboard(metaclass=Meta):
         return cls.__core__.filter()
 
     @classmethod
-    def __or__(cls, other: Union['Keyboard', Button]) -> Type['Keyboard']:
+    def __or__(cls, other: Union['Markup', Button]) -> Type['Markup']:
         """
         Union method (append), return updated copy
         Also inherit `__text__` field
@@ -227,7 +227,7 @@ class Keyboard(metaclass=Meta):
         return copy_
 
     @classmethod
-    def extend(cls, objects: Iterable[Union[Button, 'Keyboard']]):
+    def extend(cls, objects: Iterable[Union[Button, 'Markup']]):
         """
         Extend by buttons or keyboards
         """
@@ -236,18 +236,18 @@ class Keyboard(metaclass=Meta):
             cls.append(i)
 
     @classmethod
-    def append(cls, obj: Union[Button, Type['Keyboard']]):
+    def append(cls, obj: Union[Button, Type['Markup']]):
         """
         Append button or all keyboard
         """
 
         if isinstance(obj, Button):
             cls.__core__.append(obj)
-        elif Keyboard in obj.__bases__:
+        elif Markup in obj.__bases__:
             cls.__core__.extend(obj.__core__.buttons)
         else:
             raise NotImplementedError('Method support only `Button` '
-                                      'and `Keyboard` types')
+                                      'and `Markup` types')
 
         cls.__core__.struct_buttons()
 
@@ -269,14 +269,14 @@ class Keyboard(metaclass=Meta):
         return result
 
     @classmethod
-    def customize(cls, text: str) -> Type['Keyboard']:
+    def customize(cls, text: str) -> Type['Markup']:
         new = cls.copy()
         new.__core__.text = text
 
         return new
 
     @classmethod
-    def copy(cls) -> Type['Keyboard']:
+    def copy(cls) -> Type['Markup']:
         new_core = copy(cls.__core__)
         new = copy(cls)
         new.__core__ = new_core

@@ -19,7 +19,7 @@ class FilterAble(Protocol):
 
 
 bind_origin_alias = Union[Type[FilterAble], FilterAble]
-bind_target_alias = Union[Type['Keyboard'], 'Keyboard']
+bind_target_alias = Union[Type['Markup'], 'Markup']
 
 
 def bind_call(origin: bind_origin_alias, target: bind_target_alias) -> None:

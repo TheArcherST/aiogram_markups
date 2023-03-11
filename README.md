@@ -11,16 +11,16 @@ Let's start with example
 
 ```python
 
-from aiogram_markups import Keyboard, Button
+from aiogram_markups import Markup, Button
 
-class MainMenu(Keyboard):
+class MainMenu(Markup):
     settings = Button('Settings')
     help = Button('Help')
 
 ```
 
 So, you can construct your markups by class,
-inhered from `Keyboard`. But how you can use
+inhered from `Markup`. But how you can use
 it? You can get full markup and set handler
 on any button in your menu. Example:
 
@@ -95,7 +95,7 @@ Look at the following example:
 
 ```python
 
-class DataKeyboardEx(Keyboard):
+class DataKeyboardEx(Markup):
     __ignore_state__ = False
     
     hour = Button('Hour', data='h')
@@ -114,7 +114,7 @@ set to False.
 
 > Note: you can make fully messages from keyboards.
 > Just write into field `__text__` message text and
-> call method `Keyboard.process`. But this feature 
+> call method `Markup.process`. But this feature 
 > design is not thought out enough.
 
 
@@ -131,7 +131,7 @@ use following feature:
 from aiogram_markups import Orientation
 
 
-class CancelKeyboard(Keyboard):
+class CancelKeyboard(Markup):
     __orientation__ = Orientation.BOTTOM
     
     cancel = Button('Cancel')
@@ -149,7 +149,7 @@ class DataKeyboardEx(CancelKeyboard):
 In code above, field `__orientation__` with value
 `Orientation.BOTTOM` means that this keyboard must be
 at the bottom if join to another. But this param you 
-can set to any button, `Keyboard.__orientation__` field
+can set to any button, `Markup.__orientation__` field
 just sets default value.
 
 > Note: you can fast bind your keyboards/buttons, use

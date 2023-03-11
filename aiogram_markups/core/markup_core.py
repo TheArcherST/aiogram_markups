@@ -45,7 +45,7 @@ class MarkupBehavior:
         return new
 
 
-class Markup:
+class MarkupCore:
     def __init__(self,
                  buttons: list[Button] = None,
                  text: Union[str, Callable[[DialogMeta], Awaitable[str]]] = None,
@@ -251,7 +251,7 @@ class Markup:
         """Process method
 
         Process markup in chat, mentioned in `meta` object.
-        Markup scope makes able to hard set keyboard_type.
+        MarkupCore scope makes able to hard set keyboard_type.
 
         :param raw_meta: meta of chat
         :param markup_scope: scope of markup processing
