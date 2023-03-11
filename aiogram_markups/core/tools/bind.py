@@ -9,7 +9,7 @@ from ..helpers import MarkupType
 
 
 if TYPE_CHECKING:
-    from aiogram_markups.keyboard import Keyboard
+    from aiogram_markups.markup import Markup
 
 
 class FilterAble(Protocol):
