@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Union, TYPE_CHECKING, Any
 
 from aiogram.types import Message, CallbackQuery, User
@@ -120,9 +122,6 @@ class Convertor:
         return result
 
 
-meta_able_alias = Union[Message, CallbackQuery]
-
-
 class DialogMeta:
     """Dialog Meta object
 
@@ -155,3 +154,6 @@ class DialogMeta:
             self.content = Convertor.content(obj)
 
         self.source = obj
+
+
+meta_able_alias = Union[DialogMeta, Message, CallbackQuery]

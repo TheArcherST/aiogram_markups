@@ -8,7 +8,7 @@ from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, Message, Ca
 from .core.helpers import MarkupType, Orientation
 from .core.button import Button
 from .core.markup_core import MarkupCore, MarkupBehavior
-from .core.dialog_meta import DialogMeta
+from .core.dialog_meta import DialogMeta, meta_able_alias
 from .core.button import DefinitionScope
 from .validator import Validator
 from .core.markup_scheme import MarkupScheme, MarkupConstructor
@@ -200,11 +200,13 @@ class Markup(metaclass=MarkupMeta):
         return cls.__core__.buttons
 
     @classmethod
-    async def get_markup(cls, meta: DialogMeta) -> ReplyKeyboardMarkup:
+    async def get_markup(cls, context: meta_able_alias) -> ReplyKeyboardMarkup:
+        meta = DialogMeta(context)
         return await cls.__core__.get_markup(meta, MarkupType.TEXT)
 
     @classmethod
-    async def get_inline_markup(cls, meta: DialogMeta) -> InlineKeyboardMarkup:
+    async def get_inline_markup(cls, context: meta_able_alias) -> InlineKeyboardMarkup:
+        meta = DialogMeta(context)
         return await cls.__core__.get_markup(meta, MarkupType.INLINE)
 
     @classmethod
