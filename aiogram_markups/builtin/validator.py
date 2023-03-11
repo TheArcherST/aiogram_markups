@@ -2,8 +2,8 @@ from typing import Union, Iterable, Protocol
 
 from aiogram.types import Message
 
-from aiogram_keyboards.validator import Validator
-from aiogram_keyboards.core.dialog_meta import DialogMeta
+from aiogram_markups.validator import Validator
+from aiogram_markups.core.dialog_meta import DialogMeta
 
 
 class IntAble(Protocol):

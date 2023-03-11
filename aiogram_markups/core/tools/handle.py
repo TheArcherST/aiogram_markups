@@ -2,7 +2,7 @@ from typing import Type, Union, Protocol, Callable
 
 from aiogram.types import ContentTypes
 
-from aiogram_keyboards.configuration import get_dp
+from aiogram_markups.configuration import get_dp
 
 
 class FilterAble(Protocol):

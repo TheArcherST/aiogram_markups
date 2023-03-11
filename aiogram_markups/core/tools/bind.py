@@ -1,15 +1,15 @@
 from typing import Type, Union, Protocol, TYPE_CHECKING
 
-from aiogram.types import Message, CallbackQuery, ContentTypes
+from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.filters import Filter
 
-from aiogram_keyboards.configuration import get_dp
+from aiogram_markups.configuration import get_dp
 
 from ..helpers import MarkupType
 
 
 if TYPE_CHECKING:
-    from aiogram_keyboards.keyboard import Keyboard
+    from aiogram_markups.markup import Markup
 
 
 class FilterAble(Protocol):
@@ -19,7 +19,7 @@ class FilterAble(Protocol):
 
 
 bind_origin_alias = Union[Type[FilterAble], FilterAble]
-bind_target_alias = Union[Type['Keyboard'], 'Keyboard']
+bind_target_alias = Union[Type['Markup'], 'Markup']
 
 
 def bind_call(origin: bind_origin_alias, target: bind_target_alias) -> None:

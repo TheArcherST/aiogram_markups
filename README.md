@@ -1,7 +1,7 @@
-Aiogram keyboards
-=================
+Aiogram markups
+===============
 
-The package helps you construct and use inline or text keyboards.
+The package helps you construct and use inline or text markups.
 
 
 Simple usage
@@ -11,16 +11,16 @@ Let's start with example
 
 ```python
 
-from aiogram_keyboards import Keyboard, Button
+from aiogram_markups import Markup, Button
 
-class MainMenu(Keyboard):
+class MainMenu(Markup):
     settings = Button('Settings')
     help = Button('Help')
 
 ```
 
 So, you can construct your markups by class,
-inhered from `Keyboard`. But how you can use
+inhered from `Markup`. But how you can use
 it? You can get full markup and set handler
 on any button in your menu. Example:
 
@@ -33,7 +33,7 @@ dp = Dispatcher(bot)
 @dp.message_handler(commands=['start'])
 async def start_handler(message):
     await message.answer(
-        "Hi, im message with keyboard powered on aiogram_keyboards",
+        "Hi, im message with keyboard powered on aiogram_markups",
         reply_markup=MainMenu.get_markup()
     )
 
@@ -68,7 +68,7 @@ all functional, let's look in following code:
 
 ```python
 
-from aiogram_keyboards import setup_aiogram_keyboards
+from aiogram_markups import setup_aiogram_keyboards
 
 
 setup_aiogram_keyboards(dp)
@@ -95,7 +95,7 @@ Look at the following example:
 
 ```python
 
-class DataKeyboardEx(Keyboard):
+class DataKeyboardEx(Markup):
     __ignore_state__ = False
     
     hour = Button('Hour', data='h')
@@ -114,7 +114,8 @@ set to False.
 
 > Note: you can make fully messages from keyboards.
 > Just write into field `__text__` message text and
-> call method `Keyboard.process`.
+> call method `Markup.process`. But this feature 
+> design is not thought out enough.
 
 
 Inheritance
@@ -127,10 +128,10 @@ use following feature:
 
 ```python
 
-from aiogram_keyboards import Orientation
+from aiogram_markups import Orientation
 
 
-class CancelKeyboard(Keyboard):
+class CancelKeyboard(Markup):
     __orientation__ = Orientation.BOTTOM
     
     cancel = Button('Cancel')
@@ -148,129 +149,10 @@ class DataKeyboardEx(CancelKeyboard):
 In code above, field `__orientation__` with value
 `Orientation.BOTTOM` means that this keyboard must be
 at the bottom if join to another. But this param you 
-can set to any button, `Keyboard.__orientation__` field
+can set to any button, `Markup.__orientation__` field
 just sets default value.
 
 > Note: you can fast bind your keyboards/buttons, use
 > method `bind` or operator `>>`. For example: 
 > `CancelKeyboard.cancel >> MainMenuKeyboard`, binds 
 > that cancel button must process MainMenuKeyboard.
-
-
-Dialog (beta)
--------------
-
-You can construct dialog by class and other objects. You
-can set convertor for all values what bot collect during
-dialog process. For example, you need to user enter his 
-name and age, code:
-
-```python
-
-from aiogram_keyboards.dialog import Dialog, Text, Integer
-
-
-class MainDialog(Dialog):
-    name: Text = "Enter your name"
-    age: Integer = "Enter your age"
-
-    
-@MainDialog.entry_point(commands=['start'])
-async def main_dialog_handler(result: MainDialog):
-    pass
-
-```
-
-And... it's already works! If we run command `/start`,
-we will see processing dialog. To fetch dialog results,
-just explore `result` variable. You can collect is so:
-
-```python
-
-@MainDialog.entry_point(commands=['start'])
-async def main_dialog_handler(result: MainDialog):
-    print(f'User name: {result.name.result}')
-    # User name: <msg : str>
-    
-    print(f'User age: {result.age.result}')
-    # User age <msg : int>
-
-```
-
-Also objects `result.name` and `result.age` have param
-`obj`, is telegram object, what user sent as answer on 
-question.
-
-While handle answer, convertor tries to cast text to 
-type that you provide as annotation dialog, but if 
-he got troubles, question just repeating.
-
-Let's explore patterns that helps you to write your 
-dialog fastly
-
-```python
-
-class MainDialog(Dialog):
-    name: Text = "Enter your name"
-    age: Integer = "Enter your age"
-
-```
-
-Here is a dialog object from example above, but you can
-use instead text Keyboard object. But this keyboard must 
-contain not None `__text__` field.
-
-```python
-
-class DialogKeyboardEx(Keyboard):
-    __text__ = "Enter your name"
-    use_my_username = Button('Use my username')
-
-    
-class MainDialog(Dialog):
-    name: Text = DialogKeyboardEx
-    age: Integer = "Enter your age"
-
-```
-
-But this implementation looks bad, to just change message
-text you must edit keyboard, and all usages of keyboard will
-be use only this text. To solve it, use Keyboard method 
-`customize` or operator `|` (method `__or__`)
-
-```python
-
-class DialogKeyboardEx(Keyboard):
-    use_my_username = Button('Use my username')
-
-    
-class MainDialog(Dialog):
-    name: Text = DialogKeyboardEx | "Enter your name"
-    age: Integer = "Enter your age"
-
-```
-
-It's have same functionality.
-
-Also, method operator `__or__`, if handle Keyboard, append all
-buttons and inherit text, if target keyboard text is None.
-For example, if on all steps you need in `Cancel` button, you can
-implement it so:
-
-```python
-
-class CancelKeyboard(Keyboard):
-    cancel = Button('Cancel')
-
-
-class DialogKeyboardEx(Keyboard):
-    use_my_username = Button('Use my username')
-
-    
-class MainDialog(Dialog):
-    name: Text = CancelKeyboard | DialogKeyboardEx | "Enter your name"
-    age: Integer = CancelKeyboard | "Enter your age"
-
-```
-
-Now we just add everywhere a `Cancel` buttons.

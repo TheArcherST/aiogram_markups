@@ -2,8 +2,8 @@ import pytest
 
 from aiogram import Dispatcher, Bot
 from aiogram.types import Message
-from aiogram_keyboards import setup_aiogram_keyboards
-from aiogram_keyboards.core.button import DefinitionScope
+from aiogram_markups import setup_aiogram_keyboards
+from aiogram_markups.core.button import DefinitionScope
 
 
 @pytest.fixture()
