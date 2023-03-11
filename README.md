@@ -114,7 +114,8 @@ set to False.
 
 > Note: you can make fully messages from keyboards.
 > Just write into field `__text__` message text and
-> call method `Keyboard.process`.
+> call method `Keyboard.process`. But this feature 
+> design is not thought out enough.
 
 
 Inheritance
