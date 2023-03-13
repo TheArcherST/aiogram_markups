@@ -442,7 +442,7 @@ class Button:
                 buttons = cls._from_text(obj.text)
             else:
                 raise TypeError(f"Can't initialize button from object with type {type(obj)}")
-        except KeyError:
+        except (KeyError, ValueError):
             button = await cls._search_by_validator(obj)
 
             if button is not None:
