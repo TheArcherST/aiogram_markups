@@ -55,7 +55,8 @@ class MarkupCore:
                  one_time_keyboard: bool = True,
                  definition_scope: DefinitionScope = None,
                  markup_scope: str = None,
-                 markup_scheme: MarkupScheme = None):
+                 markup_scheme: MarkupScheme = None,
+                 mount_current_build_context: bool = True):
 
         if buttons is None:
             buttons = []
@@ -72,6 +73,9 @@ class MarkupCore:
         self.synchronize_buttons(orientation=orientation,
                                  ignore_state=ignore_state,
                                  definition_scope=self.definition_scope)
+
+        if mount_current_build_context:
+            self._dp = get_dp()
 
     @property
     def rows(self):
@@ -285,7 +289,7 @@ class MarkupCore:
 
         reply_markup = await self.get_markup(meta, markup_type)
 
-        dp = get_dp()
+        dp = self._dp or get_dp()
 
         if markup_type == MarkupType.TEXT:
             response = await dp.bot.send_message(chat_id=meta.chat_id,

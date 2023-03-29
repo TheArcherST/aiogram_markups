@@ -122,7 +122,7 @@ class DefinitionScope:
     async def set_state(self, meta: meta_able_alias):
         meta = DialogMeta(meta)
 
-        dp = get_dp()
+        dp = self._dp or get_dp()
         state = dp.current_state(chat=meta.chat_id, user=meta.from_user.id)
 
         await state.set_state(self.state)
