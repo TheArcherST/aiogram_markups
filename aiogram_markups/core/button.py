@@ -2,6 +2,7 @@ import typing
 from typing import Any, Union, Callable, Iterable, Optional, Awaitable
 import traceback
 
+from aiogram import Dispatcher
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
 from aiogram.dispatcher.filters.builtin import Filter
 from aiogram.dispatcher.filters import Command, StateFilter, Text
@@ -65,17 +66,20 @@ class DefinitionScope:
                  commands: Iterable[str] = None,
                  state: str = None,
                  text: Iterable[str] = None,
-                 extra_filters: list[Callable] = None):
+                 extra_filters: list[Callable] = None,
+                 mount_current_build_context: bool = True):
 
         self.commands = commands
         self.state = state
         self.text = text
         self.extra_filters = extra_filters or []
 
+        self._dp: Optional[Dispatcher] = \
+            get_dp() if mount_current_build_context else None
+
     @property
     def filter(self):
         result = BoolFilter(True)
-        dp = get_dp()
 
         def add_condition(*filters: Callable):
             nonlocal result
@@ -88,7 +92,7 @@ class DefinitionScope:
         if self.commands is not None:
             add_condition(Command(commands=self.commands))
         if self.state is not None:
-            add_condition(StateFilter(dp, self.state))
+            add_condition(StateFilter(self.dp, self.state))
         if self.text is not None:
             add_condition(Text(self.text))
 
@@ -122,6 +126,9 @@ class DefinitionScope:
         state = dp.current_state(chat=meta.chat_id, user=meta.from_user.id)
 
         await state.set_state(self.state)
+
+    def mount_dp(self, dp):
+        self._dp = dp
 
     def __str__(self):
         return f'<Scope state="{self.state}">'
