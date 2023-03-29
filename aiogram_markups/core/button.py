@@ -92,7 +92,7 @@ class DefinitionScope:
         if self.commands is not None:
             add_condition(Command(commands=self.commands))
         if self.state is not None:
-            add_condition(StateFilter(self.dp, self.state))
+            add_condition(StateFilter(self._dp, self.state))
         if self.text is not None:
             add_condition(Text(self.text))
 
