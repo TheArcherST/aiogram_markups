@@ -68,10 +68,9 @@ all functional, let's look in following code:
 
 ```python
 
-from aiogram_markups import setup_aiogram_keyboards
+from aiogram_markups import set_dp
 
-
-setup_aiogram_keyboards(dp)
+set_dp(dp)
 
 ```
 

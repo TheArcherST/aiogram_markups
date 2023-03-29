@@ -3,7 +3,7 @@ from aiogram.types import Message
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_polling
 
-from aiogram_markups import Markup, Button, setup_aiogram_keyboards, Orientation
+from aiogram_markups import Markup, Button, set_dp, Orientation
 
 
 # ====== initialization =======
@@ -12,7 +12,7 @@ bot = Bot('1729163324:AAHtCcEZYZ6yfBAKZhnyoTxMzFoqOpG69_M')
 storage = MemoryStorage()
 dp = Dispatcher(bot=bot, storage=storage)
 
-setup_aiogram_keyboards(dp)
+set_dp(dp)
 
 
 # ====== keyboards init ======

@@ -2,7 +2,7 @@ import pytest
 
 from aiogram import Dispatcher, Bot
 from aiogram.types import Message
-from aiogram_markups import setup_aiogram_keyboards
+from aiogram_markups import set_dp
 from aiogram_markups.core.button import DefinitionScope
 
 
@@ -11,7 +11,7 @@ def dp():
     bot = Bot('1:faketoken')
     dispatcher = Dispatcher(bot)
 
-    setup_aiogram_keyboards(dispatcher)
+    set_dp(dispatcher)
 
 
 @pytest.mark.asyncio
