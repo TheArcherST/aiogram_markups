@@ -1,7 +1,11 @@
 Aiogram markups
 ===============
 
-The package helps you construct and use inline or text markups.
+THIS PACKAGE REQUIRES LEGACY AIOGRAM
+ 
+DO NOT USE IT IN PRODUCTION
+
+This package helps you construct and use inline or text markups.
 
 
 Simple usage
