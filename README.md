@@ -1,11 +1,11 @@
 Aiogram markups
 ===============
 
-THIS PACKAGE REQUIRES LEGACY AIOGRAM
- 
-DO NOT USE IT IN PRODUCTION
+THIS PACKAGE REQUIRES LEGACY AIOGRAM.
 
-This package helps you construct and use inline or text markups.
+PLEASE, DO NOT USE IT IN PRODUCTION.
+
+This package helps you declaratively define and use inline or text markups.
 
 
 Simple usage
@@ -23,10 +23,11 @@ class MainMenu(Markup):
 
 ```
 
-So, you can construct your markups by class,
-inhered from `Markup`. But how you can use
-it? You can get full markup and set handler
-on any button in your menu. Example:
+So, you can define markups via inheriting
+from class `Markup`.  Then, you can
+construct the markup and reply the user 
+with this markup.
+
 
 ```python
 
@@ -40,35 +41,42 @@ async def start_handler(message):
         "Hi, im message with keyboard powered on aiogram_markups",
         reply_markup=MainMenu.get_markup()
     )
+```
 
+As you statically defined several buttons in the markup, you
+can explicitly reference one of its buttons below the code,
+and, for example, bind handler, that will trigger on message,
+produced via pressing on button from your markup.  Just get
+the button filter via Button.filter() and set the handler:
+
+
+```python
 
 @dp.message_handler(MainMenu.settings.filter())
 async def settings_handler(message):
-    await message.answer("I know that you press on settings button!")
+    await message.answer("I know you pressed on settings button!")
 
 
 ```
 
-> Note:
-> You can create button aliases. it means
-> that button will be have same functional,
-> only names were different. To create an
-> alias, use func `button.alias(...)`
+If you need an inline keyboard markup rather 
+than text one, all that you need if to call
+`get_inline_markup` instead of `get_markup`.
+Note, that handler, bounded to button trigger,
+will trigger on both of button representations:
+text and inline.
 
-If you need in inline keyboard markup, not 
-text, all that you need: instead method
-`get_markup`, use method `get_inline_markup`, 
-no changes in filter usage.
+As you do not state callback data, that
+must be assigned to your inline buttons, 
+callback data if generated automatically. It
+is consists from a prefix and MD5 hash of 
+button text. Default prefix is `::keyboard::`
+(in Button.CALLBACK_ROOT). You can change prefix, but
+it must exactly end with colon. 
 
-But you can ask, what is callback data of the 
-button callback query? Callback data creating 
-from prefix and MD5 text hash. Default prefix
-is `::keyboard::` (in Button.CALLBACK_ROOT), 
-and I not recommend changing it. But if you 
-change, one condition: it must end on colon. 
-
-How you can set up module middleware to void
-all functional, let's look in following code:
+Package also provides high-level API for altering
+behavior of your bot.  To enable this framework,
+you must set up the aiogram markups in the following way:
 
 ```python
 
@@ -79,22 +87,25 @@ setup_aiogram_keyboards(dp)
 
 ```
 
-What I did? I'm set up specify middleware, that 
-skip states if sent text or callback found in 
-any button pattern.
+This will impact on markup defined above.  Now,
+framework will check all incoming updates
+if an update matches any button of defined markups.
+If it is, the current state of dialog will 
+be cleared.  So plainly defined markups is 
+supposed to be globally accessible.
 
-> Note:
-> You can configure if button call raise state
-> skip. Just give to button argument 
-> `ignore_state` to initialization method. Also 
-> you can set default call answer on button in
-> argument `on_call`.
+The ability of a button to interrupt current
+state is defined by its flag `ignore_state`.
+(True by default).  You can define this flag during
+button assignation or provide default value for 
+all buttons in markup by setting class-level variable
+`__ignore_state__`.
 
 
 Data keyboards
 --------------
 
-You can make keyboards with need data in buttons.
+You can make keyboards with data in buttons.
 Look at the following example:
 
 ```python
@@ -108,27 +119,28 @@ class DataKeyboardEx(Markup):
 
 ```
 
-So, you can same get inline or keyboard markup.
-If markup inline, data were in `call.data`, 
-if text markup, in `message.text`.
-Field `__ignore_state__` is default value of 
-ignore_state for all buttons in keyboard. In 
-data keyboards, if you use states, it must be 
+If you want to use inline markup, within handler,
+data will be accessible in `call.data`. If you use 
+text markup, data will be accessible in `message.text`.
+Framework's middleware overrides them for you.
+As mentioned before, the field `__ignore_state__` is
+default value of ignore_state's for all buttons in the
+markup. In data keyboards, if you use states, it must be 
 set to False.
 
-> Note: you can make fully messages from keyboards.
-> Just write into field `__text__` message text and
-> call method `Markup.process`. But this feature 
-> design is not thought out enough.
+> Note: you can make complete messages from markups.
+> Just write into field `__text__` the message text and
+> call method `Markup.process`.  Unfortunately, design 
+> of this feature is not thought out enough, so I not
+> recommend to use it.
 
 
 Inheritance
 -----------
 
-You can merge two keyboards via inherit. For example,
+You can merge two markups via inheritance. For example,
 you can have one undo keyboard and many data keyboards,
-and you don't need to assign undo button every time,
-use following feature:
+which must contain the undo button.
 
 ```python
 
@@ -151,12 +163,16 @@ class DataKeyboardEx(CancelKeyboard):
 ```
 
 In code above, field `__orientation__` with value
-`Orientation.BOTTOM` means that this keyboard must be
-at the bottom if join to another. But this param you 
-can set to any button, `Markup.__orientation__` field
-just sets default value.
+`Orientation.BOTTOM` means that this markup must be
+at the bottom if joins to another. Like in state ignoring,
+`__orientation__` is default one-off value for Button
+fields `orientation`, that can be set explicitly.
 
-> Note: you can fast bind your keyboards/buttons, use
-> method `bind` or operator `>>`. For example: 
-> `CancelKeyboard.cancel >> MainMenuKeyboard`, binds 
+> Note: you can bind your markups/buttons so
+> one can process another.  Use method `bind`
+> or operator `>>`. For example 
+> `CancelKeyboard.cancel >> MainMenuKeyboard` binds 
 > that cancel button must process MainMenuKeyboard.
+> This feature must be assumed the same as 
+> processing of the markups: its design 
+> is not thought out enough.
